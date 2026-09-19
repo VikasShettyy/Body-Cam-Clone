@@ -1,11 +1,11 @@
 [gd_scene load_steps=12 format=3 uid="uid://ckqcwxembp6n3"]
 
 [ext_resource type="PackedScene" uid="uid://bxp4o7lnp7tc2" path="res://Scenes/Player/player.tscn" id="1_1srsd"]
-[ext_resource type="Texture2D" uid="uid://byj77ip7fx7q8" path="res://Prototype_Textures/Dark/texture_01.png" id="2_18ja4"]
 [ext_resource type="Material" uid="uid://cyt0qnyhf8lys" path="res://Prototype_Textures/Dark/gray.tres" id="2_u7hpt"]
 [ext_resource type="Script" uid="uid://ceml704h6ueh6" path="res://Scripts/Camera/bodycam_exposure.gd" id="4_oidnl"]
 [ext_resource type="Shader" uid="uid://bew51f854lsn3" path="res://Shaders/fisheye.gdshader" id="4_pnj4j"]
 [ext_resource type="Script" uid="uid://ds5rwvey655q3" path="res://Scripts/Camera/bodycam_overlay.gd" id="5_oidnl"]
+[ext_resource type="Texture2D" uid="uid://c1x4lvs6i0jjk" path="res://Prototype_Textures/Light/texture_02.png" id="6_oidnl"]
 
 [sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_18ja4"]
 sky_top_color = Color(0.603957, 0.668823, 0.759212, 1)
@@ -42,7 +42,7 @@ shader_parameter/vignette_softness = 0.12
 shader_parameter/aspect_ratio = 1.77778
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_pnj4j"]
-albedo_texture = ExtResource("2_18ja4")
+albedo_texture = ExtResource("6_oidnl")
 uv1_triplanar = true
 
 [node name="Test_world" type="Node3D"]
