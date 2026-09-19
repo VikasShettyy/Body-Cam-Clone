@@ -9,6 +9,7 @@ height = 1.7
 [node name="CharacterBody3D" type="CharacterBody3D"]
 script = ExtResource("1_uvnfx")
 camera_yaw_inertia = 0.004
+landing_shake_strength = 0.1
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="."]
 shape = SubResource("CapsuleShape3D_tugb3")

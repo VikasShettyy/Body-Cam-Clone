@@ -1,9 +1,11 @@
-[gd_scene load_steps=10 format=3 uid="uid://ckqcwxembp6n3"]
+[gd_scene load_steps=12 format=3 uid="uid://ckqcwxembp6n3"]
 
 [ext_resource type="PackedScene" uid="uid://bxp4o7lnp7tc2" path="res://Scenes/Player/player.tscn" id="1_1srsd"]
 [ext_resource type="Texture2D" uid="uid://byj77ip7fx7q8" path="res://Prototype_Textures/Dark/texture_01.png" id="2_18ja4"]
 [ext_resource type="Material" uid="uid://cyt0qnyhf8lys" path="res://Prototype_Textures/Dark/gray.tres" id="2_u7hpt"]
+[ext_resource type="Script" uid="uid://ceml704h6ueh6" path="res://Scripts/Camera/bodycam_exposure.gd" id="4_oidnl"]
 [ext_resource type="Shader" uid="uid://bew51f854lsn3" path="res://Shaders/fisheye.gdshader" id="4_pnj4j"]
+[ext_resource type="Script" uid="uid://ds5rwvey655q3" path="res://Scripts/Camera/bodycam_overlay.gd" id="5_oidnl"]
 
 [sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_18ja4"]
 sky_top_color = Color(0.603957, 0.668823, 0.759212, 1)
@@ -30,6 +32,7 @@ shader_parameter/sharpening = 0.22
 shader_parameter/contrast = 1.08
 shader_parameter/saturation = 0.92
 shader_parameter/brightness = 0.0
+shader_parameter/exposure = 1.0
 shader_parameter/grain_strength = 0.025
 shader_parameter/grain_size = 2.0
 shader_parameter/vignette_strength = 0.8
@@ -61,7 +64,7 @@ material = ExtResource("2_u7hpt")
 
 [node name="Bodycam" type="CanvasLayer" parent="."]
 
-[node name="ColorRect" type="ColorRect" parent="Bodycam"]
+[node name="ColorRect" type="ColorRect" parent="Bodycam" node_paths=PackedStringArray("exposure_camera", "exposure_viewport")]
 material = SubResource("ShaderMaterial_oidnl")
 anchors_preset = 15
 anchor_right = 1.0
@@ -69,9 +72,99 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
+script = ExtResource("4_oidnl")
+exposure_camera = NodePath("ExposureViewport/ExposureCamera")
+exposure_viewport = NodePath("ExposureViewport")
+
+[node name="ExposureViewport" type="SubViewport" parent="Bodycam/ColorRect"]
+size = Vector2i(32, 18)
+render_target_update_mode = 4
+
+[node name="ExposureCamera" type="Camera3D" parent="Bodycam/ColorRect/ExposureViewport"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.66639, 0)
+current = true
+
+[node name="UI" type="Control" parent="Bodycam"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="Overlay" type="Control" parent="Bodycam/UI"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+script = ExtResource("5_oidnl")
+
+[node name="RECLabel" type="Label" parent="Bodycam/UI/Overlay"]
+layout_mode = 1
+offset_right = 44.0
+offset_bottom = 23.0
+theme_override_font_sizes/font_size = 18
+text = "● REC"
+
+[node name="TimeLabel" type="Label" parent="Bodycam/UI/Overlay"]
+layout_mode = 1
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -40.0
+offset_bottom = 23.0
+grow_horizontal = 0
+text = "00:00:00"
+
+[node name="CameraLabel" type="Label" parent="Bodycam/UI/Overlay"]
+layout_mode = 1
+anchors_preset = 3
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -59.0
+offset_top = -23.0
+grow_horizontal = 0
+grow_vertical = 0
+text = "CAM-01"
 
 [node name="CSGBox3D2" type="CSGBox3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.91127, -5.22227)
 use_collision = true
 size = Vector3(10, 5, 0.5)
+material = SubResource("StandardMaterial3D_pnj4j")
+
+[node name="CSGBox3D3" type="CSGBox3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, -4.37114e-08, 1, 0, -1, -4.37114e-08, 0, 1.57097, -13.9274)
+use_collision = true
+size = Vector3(3.94312, 0.905457, 2.71265)
+material = SubResource("StandardMaterial3D_pnj4j")
+
+[node name="CSGBox3D5" type="CSGBox3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, -1, -8.74228e-08, 0, 8.74228e-08, -1, 0, 2.92736, -15.7404)
+use_collision = true
+size = Vector3(3.94312, 0.281952, 3)
+material = SubResource("StandardMaterial3D_pnj4j")
+
+[node name="CSGBox3D7" type="CSGBox3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, -1, -8.74228e-08, 0, 8.74228e-08, -1, 7.58149, 2.92736, -15.7404)
+use_collision = true
+size = Vector3(11.3457, 0.281952, 8.96875)
+material = SubResource("StandardMaterial3D_pnj4j")
+
+[node name="CSGBox3D6" type="CSGBox3D" parent="."]
+transform = Transform3D(-4.37114e-08, -1, -8.74228e-08, -1, 4.37114e-08, 3.82137e-15, 0, 8.74228e-08, -1, 1.48246, 1.62188, -15.7404)
+use_collision = true
+size = Vector3(2.56189, 0.905457, 3)
+material = SubResource("StandardMaterial3D_pnj4j")
+
+[node name="CSGBox3D4" type="CSGBox3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, -4.37114e-08, 1, 0, -1, -4.37114e-08, 0, 1.76551, -17.2584)
+use_collision = true
+size = Vector3(3.94312, 0.554321, 2.71265)
 material = SubResource("StandardMaterial3D_pnj4j")

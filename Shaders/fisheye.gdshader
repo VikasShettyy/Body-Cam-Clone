@@ -41,18 +41,36 @@ uniform float chromatic_edge_strength :
 uniform float sharpening :
 	hint_range(0.0, 1.0, 0.01) = 0.22;
 
+
 // Contrast.
 uniform float contrast :
 	hint_range(0.5, 2.0, 0.01) = 1.08;
+
 
 // Saturation.
 // Values below 1 reduce saturation.
 uniform float saturation :
 	hint_range(0.0, 2.0, 0.01) = 0.92;
 
+
 // Small brightness adjustment.
 uniform float brightness :
 	hint_range(-0.2, 0.2, 0.01) = 0.0;
+
+
+// ============================================================
+// EXPOSURE
+// ============================================================
+//
+// This value is controlled by the BodyCam exposure script.
+//
+// 1.0 = normal exposure
+// < 1.0 = darker
+// > 1.0 = brighter
+//
+
+uniform float exposure = 1.0;
+
 
 // ============================================================
 // SENSOR NOISE
@@ -63,6 +81,7 @@ uniform float grain_strength :
 
 uniform float grain_size :
 	hint_range(1.0, 8.0, 0.1) = 2.0;
+
 
 // ============================================================
 // VIGNETTE
@@ -177,7 +196,6 @@ vec3 apply_sharpen(
 	vec3 center_color
 )
 {
-	// Small sampling distance.
 	vec2 pixel = vec2(
 		0.0012,
 		0.0012
@@ -208,28 +226,31 @@ vec3 apply_sharpen(
 	).rgb;
 
 
-	// Blur-like average.
 	vec3 surrounding =
 		(
 			north +
 			south +
 			east +
 			west
-		) * 0.25;
+		)
+		*
+		0.25;
 
 
-	// Unsharp mask.
 	vec3 sharpened =
-		center_color +
+		center_color
+		+
 		(
 			center_color -
 			surrounding
-		) *
+		)
+		*
 		sharpening;
 
 
 	return sharpened;
 }
+
 
 // ============================================================
 // RANDOM NOISE
@@ -251,6 +272,8 @@ float random_noise(vec2 position)
 		43758.5453
 	);
 }
+
+
 // ============================================================
 // FRAGMENT
 // ============================================================
@@ -258,6 +281,7 @@ float random_noise(vec2 position)
 void fragment()
 {
 	vec2 uv = SCREEN_UV;
+
 
 	// --------------------------------------------------------
 	// Fisheye
@@ -282,9 +306,9 @@ void fragment()
 		distorted_uv.y <= 1.0
 	)
 	{
-		// ----------------------------------------------------
-		// Chromatic aberration
-		// ----------------------------------------------------
+		// ====================================================
+		// CHROMATIC ABERRATION
+		// ====================================================
 
 		vec2 direction =
 			distorted_uv -
@@ -327,8 +351,11 @@ void fragment()
 
 
 		vec2 red_uv =
-			distorted_uv +
-			chromatic_direction * offset;
+			distorted_uv
+			+
+			chromatic_direction
+			*
+			offset;
 
 
 		vec2 green_uv =
@@ -336,8 +363,11 @@ void fragment()
 
 
 		vec2 blue_uv =
-			distorted_uv -
-			chromatic_direction * offset;
+			distorted_uv
+			-
+			chromatic_direction
+			*
+			offset;
 
 
 		red_uv = clamp(
@@ -390,9 +420,9 @@ void fragment()
 			);
 
 
-		// ----------------------------------------------------
-		// Sharpening
-		// ----------------------------------------------------
+		// ====================================================
+		// SHARPENING
+		// ====================================================
 
 		final_color =
 			apply_sharpen(
@@ -401,9 +431,9 @@ void fragment()
 			);
 
 
-		// ----------------------------------------------------
-		// Contrast
-		// ----------------------------------------------------
+		// ====================================================
+		// CONTRAST
+		// ====================================================
 
 		final_color =
 			(
@@ -416,9 +446,9 @@ void fragment()
 			vec3(0.5);
 
 
-		// ----------------------------------------------------
-		// Saturation
-		// ----------------------------------------------------
+		// ====================================================
+		// SATURATION
+		// ====================================================
 
 		final_color =
 			apply_saturation(
@@ -427,40 +457,56 @@ void fragment()
 			);
 
 
-		// ----------------------------------------------------
-		// Brightness
-		// ----------------------------------------------------
+		// ====================================================
+		// BRIGHTNESS
+		// ====================================================
 
 		final_color +=
 			vec3(brightness);
+
+
+		// ====================================================
+		// EXPOSURE
+		// ====================================================
+		//
+		// This is the value controlled by the
+		// bodycam_exposure.gd script.
+		//
+
+		final_color *= exposure;
 	}
 
-// --------------------------------------------------------
-// Sensor grain
-// --------------------------------------------------------
 
-vec2 grain_position =
-	floor(
-		SCREEN_UV *
-		1000.0 /
-		grain_size
-	);
+	// ========================================================
+	// SENSOR GRAIN
+	// ========================================================
 
-float noise =
-	random_noise(
-		grain_position
-	);
+	vec2 grain_position =
+		floor(
+			SCREEN_UV *
+			1000.0 /
+			grain_size
+		);
 
-noise =
-	noise * 2.0 - 1.0;
 
-final_color +=
-	noise *
-	grain_strength;
+	float noise =
+		random_noise(
+			grain_position
+		);
 
-	// --------------------------------------------------------
-	// Vignette
-	// --------------------------------------------------------
+
+	noise =
+		noise * 2.0 - 1.0;
+
+
+	final_color +=
+		noise *
+		grain_strength;
+
+
+	// ========================================================
+	// VIGNETTE
+	// ========================================================
 
 	float vignette =
 		calculate_vignette(uv);
@@ -470,9 +516,9 @@ final_color +=
 		vignette;
 
 
-	// --------------------------------------------------------
-	// Prevent excessive values
-	// --------------------------------------------------------
+	// ========================================================
+	// CLAMP
+	// ========================================================
 
 	final_color =
 		clamp(
@@ -482,9 +528,9 @@ final_color +=
 		);
 
 
-	// --------------------------------------------------------
-	// Output
-	// --------------------------------------------------------
+	// ========================================================
+	// OUTPUT
+	// ========================================================
 
 	COLOR = vec4(
 		final_color,
