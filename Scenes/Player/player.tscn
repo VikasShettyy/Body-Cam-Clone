@@ -9,6 +9,7 @@ height = 1.7
 
 [node name="CharacterBody3D" type="CharacterBody3D"]
 script = ExtResource("1_uvnfx")
+weapon_idle_amount = 0.001
 camera_yaw_inertia = 0.004
 landing_shake_strength = 0.1
 
@@ -28,4 +29,4 @@ fov = 80.0
 [node name="WeaponHolder" type="Node3D" parent="CameraPivot/Camera3D"]
 
 [node name="Weapon" parent="CameraPivot/Camera3D/WeaponHolder" instance=ExtResource("2_a3d8c")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.175, -0.105, -0.265)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.105, -0.15)
