@@ -76,6 +76,21 @@ extends CharacterBody3D
 var camera_yaw_offset := 0.0
 
 # ============================================================
+# CAMERA SHAKE
+# ============================================================
+
+@export_category("Camera Shake")
+
+@export var landing_shake_strength := 0.035
+@export var landing_shake_rotation := 0.025
+@export var shake_recovery_speed := 12.0
+
+var shake_position := Vector3.ZERO
+var shake_rotation := Vector3.ZERO
+var previous_vertical_velocity := 0.0
+var was_on_floor := false
+
+# ============================================================
 # NODES
 # ============================================================
 
@@ -208,6 +223,8 @@ func _physics_process(delta: float) -> void:
 	handle_bodycam_motion(delta)
 
 	handle_camera_inertia(delta)
+	
+	handle_camera_shake(delta)
 
 # ============================================================
 # MOVEMENT
@@ -502,3 +519,99 @@ func handle_camera_inertia(delta: float) -> void:
 		camera_yaw_offset,
 		pitch_smoothing
 	)
+
+# ============================================================
+# CAMERA SHAKE
+# ============================================================
+
+func handle_camera_shake(delta: float) -> void:
+
+	# --------------------------------------------------------
+	# Detect landing
+	# --------------------------------------------------------
+
+	var just_landed: bool = (
+		is_on_floor()
+		and not was_on_floor
+		and previous_vertical_velocity < -1.0
+	)
+
+
+	# --------------------------------------------------------
+	# Landing impact
+	# --------------------------------------------------------
+
+	if just_landed:
+
+		var impact_strength: float = clamp(
+			abs(previous_vertical_velocity) / 10.0,
+			0.0,
+			1.0
+		)
+
+		shake_position.y -= (
+			landing_shake_strength *
+			impact_strength
+		)
+
+		shake_position.z += (
+			landing_shake_strength *
+			0.5 *
+			impact_strength
+		)
+
+		shake_rotation.x += (
+			landing_shake_rotation *
+			impact_strength
+		)
+
+
+	# --------------------------------------------------------
+	# Recover position
+	# --------------------------------------------------------
+
+	var recovery_amount: float = (
+		1.0 -
+		exp(
+			-shake_recovery_speed * delta
+		)
+	)
+
+	shake_position = shake_position.lerp(
+		Vector3.ZERO,
+		recovery_amount
+	)
+
+
+	# --------------------------------------------------------
+	# Recover rotation
+	# --------------------------------------------------------
+
+	shake_rotation = shake_rotation.lerp(
+		Vector3.ZERO,
+		recovery_amount
+	)
+
+
+	# --------------------------------------------------------
+	# Apply position shake
+	# --------------------------------------------------------
+
+	camera.position = shake_position
+
+
+	# --------------------------------------------------------
+	# Apply rotation shake
+	# --------------------------------------------------------
+
+	camera.rotation.x = shake_rotation.x
+	camera.rotation.y = shake_rotation.y
+	camera.rotation.z = shake_rotation.z
+
+
+	# --------------------------------------------------------
+	# Store state
+	# --------------------------------------------------------
+
+	previous_vertical_velocity = velocity.y
+	was_on_floor = is_on_floor()
