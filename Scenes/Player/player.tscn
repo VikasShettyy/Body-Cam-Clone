@@ -1,9 +1,10 @@
-[gd_scene load_steps=6 format=3 uid="uid://bxp4o7lnp7tc2"]
+[gd_scene load_steps=7 format=3 uid="uid://bxp4o7lnp7tc2"]
 
 [ext_resource type="Script" uid="uid://blbwjgwycqov0" path="res://Scenes/Player/player.gd" id="1_uvnfx"]
 [ext_resource type="PackedScene" uid="uid://c0x4d1wrexyj" path="res://Scenes/Player/weapon.tscn" id="2_a3d8c"]
 [ext_resource type="PackedScene" uid="uid://cbedmvvwfv8n8" path="res://Scenes/Player/ShellCasing.tscn" id="2_xpcdj"]
 [ext_resource type="PackedScene" uid="uid://dlbllbk2klx31" path="res://Scenes/Player/BulletImpact.tscn" id="3_mtuoh"]
+[ext_resource type="AudioStream" uid="uid://dbhuofwefbrcj" path="res://Assets/SFX/Player/footsteps.mp3" id="5_htcer"]
 
 [sub_resource type="CapsuleShape3D" id="CapsuleShape3D_tugb3"]
 radius = 0.35
@@ -43,4 +44,9 @@ fov = 80.0
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.105, -0.15)
 
 [node name="ADSPoint" type="Marker3D" parent="CameraPivot/Camera3D/WeaponHolder/WeaponADS/Weapon"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.0657358, 0.085035, -0.0757533)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.0657358, 0.099947, -0.0757533)
+
+[node name="FootstepSound" type="AudioStreamPlayer3D" parent="."]
+stream = ExtResource("5_htcer")
+volume_db = -25.0
+max_distance = 15.0

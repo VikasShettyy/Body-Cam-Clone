@@ -1,5 +1,11 @@
 extends CharacterBody3D
 
+
+
+#object sounds while hit
+@onready var metal_impact_sound: AudioStreamPlayer3D = (
+	$MetalImpactSound
+)
 #UI Ammo
 @export var ammo_label: Label 
 
@@ -254,6 +260,19 @@ var ads_point_local_transform := Transform3D.IDENTITY
 @onready var ads_point: Marker3D = (
 	$CameraPivot/Camera3D/WeaponHolder/WeaponADS/Weapon/ADSPoint
 )
+
+#PLAYER AUDIO
+@export_category("Footsteps")
+@onready var footstep_sound: AudioStreamPlayer3D = $FootstepSound
+@export var footstep_min_speed := 0.8
+@export var footstep_pitch_variation := 0.06
+
+var last_footstep_phase := 0.0
+var footstep_timer := 0.0
+
+
+@export_category("Bullet Impact")
+@export var bullet_force := 4.0
 # ============================================================
 # NODES
 # ============================================================
@@ -422,7 +441,9 @@ func _physics_process(delta: float) -> void:
 	move_and_slide()
 
 	handle_bodycam_motion(delta)
-
+	
+	handle_footsteps()
+	
 	handle_camera_inertia(delta)
 
 	handle_camera_shake(delta)
@@ -434,6 +455,7 @@ func _physics_process(delta: float) -> void:
 	handle_muzzle_flash(delta)
 
 	handle_weapon_ads(delta)
+	
 	
 # ============================================================
 # MOVEMENT
@@ -1288,16 +1310,52 @@ func handle_bullet_hit(
 ) -> void:
 
 	print("Hit: ", hit_object)
-	print("Position: ", hit_position)
 
 	spawn_bullet_impact(
 		hit_position,
-		hit_normal
+		hit_normal,
+		hit_object
 	)
+
+	var damageable: Damageable = (
+		hit_object.find_child(
+			"Damageable",
+			true,
+			false
+		) as Damageable
+	)
+
+	if damageable != null:
+		damageable.take_damage(
+			bullet_damage,
+			hit_position,
+			hit_normal
+		)
+
+	var surface: SurfaceInfo = (
+		hit_object.find_child(
+			"SurfaceType",
+			true,
+			false
+		) as SurfaceInfo
+	)
+
+	if surface != null:
+		surface.play_impact()
+
+	if hit_object is RigidBody3D:
+		var body: RigidBody3D = hit_object
+
+		body.apply_impulse(
+			-hit_normal * bullet_force,
+			hit_position - body.global_position
+		)
+		
 
 func spawn_bullet_impact(
 	hit_position: Vector3,
-	hit_normal: Vector3
+	hit_normal: Vector3,
+	hit_object: Object
 ) -> void:
 
 	if bullet_impact_scene == null:
@@ -1310,18 +1368,24 @@ func spawn_bullet_impact(
 
 	get_tree().current_scene.add_child(impact)
 
-	# Move slightly away from the wall
+	# Position and orient the impact first.
 	impact.global_position = (
 		hit_position + hit_normal * 0.005
 	)
 
-	# QuadMesh faces +Z.
-	# We want +Z to point in the same direction as the wall normal.
 	impact.global_basis = Basis.looking_at(
 		-hit_normal,
 		Vector3.UP
 	)
 
+	# Attach the bullet hole to the object that was hit.
+	if hit_object is Node3D:
+		var hit_node: Node3D = hit_object
+
+		impact.reparent(
+			hit_node,
+			true
+		)	
 func reload_weapon() -> void:
 	if is_reloading:
 		return
@@ -1407,3 +1471,74 @@ func handle_weapon_ads(delta: float) -> void:
 		target_fov,
 		smoothing
 	)
+
+func handle_footsteps() -> void:
+	var horizontal_velocity: Vector3 = Vector3(
+		velocity.x,
+		0.0,
+		velocity.z
+	)
+
+	var movement_speed: float = horizontal_velocity.length()
+
+	if not is_on_floor() or movement_speed < footstep_min_speed:
+		last_footstep_phase = 0.0
+		return
+
+	var current_phase: float = sin(camera_bob_time)
+
+	# Detect the downward part of the bob cycle.
+	if last_footstep_phase > 0.0 and current_phase <= 0.0:
+		play_footstep()
+
+	last_footstep_phase = current_phase
+	
+func play_footstep() -> void:
+	if footstep_sound == null:
+		return
+
+	footstep_sound.pitch_scale = randf_range(
+		1.0 - footstep_pitch_variation,
+		1.0 + footstep_pitch_variation
+	)
+
+	footstep_sound.play()
+
+func handle_surface_impact(
+	hit_object: Object,
+	hit_position: Vector3,
+	hit_normal: Vector3
+) -> void:
+
+	var surface: SurfaceInfo = (
+		hit_object.find_child(
+			"SurfaceType",
+			true,
+			false
+		) as SurfaceInfo
+	)
+
+	if surface == null:
+		return
+
+	match surface.surface_type:
+
+		SurfaceInfo.SurfaceKind.DEFAULT:
+			play_metal_impact()
+
+		SurfaceInfo.SurfaceKind.METAL:
+			play_metal_impact()
+
+		SurfaceInfo.SurfaceKind.GLASS:
+			pass
+			
+func play_metal_impact() -> void:
+	if metal_impact_sound == null:
+		return
+
+	metal_impact_sound.pitch_scale = randf_range(
+		0.9,
+		1.1
+	)
+
+	metal_impact_sound.play()
