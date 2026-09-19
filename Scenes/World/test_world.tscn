@@ -1,4 +1,4 @@
-[gd_scene load_steps=13 format=3 uid="uid://ckqcwxembp6n3"]
+[gd_scene load_steps=15 format=3 uid="uid://ckqcwxembp6n3"]
 
 [ext_resource type="PackedScene" uid="uid://bxp4o7lnp7tc2" path="res://Scenes/Player/player.tscn" id="1_1srsd"]
 [ext_resource type="Material" uid="uid://cyt0qnyhf8lys" path="res://Prototype_Textures/Dark/gray.tres" id="2_u7hpt"]
@@ -6,7 +6,9 @@
 [ext_resource type="Shader" uid="uid://bew51f854lsn3" path="res://Shaders/fisheye.gdshader" id="4_pnj4j"]
 [ext_resource type="Script" uid="uid://ds5rwvey655q3" path="res://Scripts/Camera/bodycam_overlay.gd" id="5_oidnl"]
 [ext_resource type="Texture2D" uid="uid://c1x4lvs6i0jjk" path="res://Prototype_Textures/Light/texture_02.png" id="6_oidnl"]
+[ext_resource type="Texture2D" uid="uid://cn1wk0kp3x6pn" path="res://Materials/SunFlare.png" id="6_w7bqs"]
 [ext_resource type="PackedScene" uid="uid://dhv0gmqm7gx7g" path="res://Scenes/Objects/shootable_box.tscn" id="7_2ix1y"]
+[ext_resource type="Script" uid="uid://dsk086d8ttmmv" path="res://Scripts/Camera/sun_lens_flare.gd" id="7_2ound"]
 
 [sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_18ja4"]
 sky_top_color = Color(0.603957, 0.668823, 0.759212, 1)
@@ -20,24 +22,31 @@ sky_material = SubResource("ProceduralSkyMaterial_18ja4")
 [sub_resource type="Environment" id="Environment_u7hpt"]
 background_mode = 2
 sky = SubResource("Sky_7vjjh")
+ambient_light_source = 3
+ambient_light_sky_contribution = 0.08
+ambient_light_energy = 0.25
+reflected_light_source = 2
 tonemap_mode = 3
 glow_enabled = true
+glow_intensity = 0.38
+fog_light_energy = 7.34
+fog_sun_scatter = 1.0
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_oidnl"]
 shader = ExtResource("4_pnj4j")
-shader_parameter/distortion_strength = 0.22
-shader_parameter/distortion_edge = 0.224
-shader_parameter/lens_zoom = 0.827
-shader_parameter/chromatic_aberration = 0.0025
+shader_parameter/distortion_strength = 0.06
+shader_parameter/distortion_edge = 0.0
+shader_parameter/lens_zoom = 0.961
+shader_parameter/chromatic_aberration = 0.0014
 shader_parameter/chromatic_edge_strength = 1.06
 shader_parameter/sharpening = 0.59
 shader_parameter/contrast = 1.08
 shader_parameter/saturation = 0.92
 shader_parameter/brightness = 0.0
 shader_parameter/exposure = 1.0
-shader_parameter/grain_strength = 0.0
+shader_parameter/grain_strength = 0.002
 shader_parameter/grain_size = 2.0
-shader_parameter/vignette_strength = 0.45
+shader_parameter/vignette_strength = 1.0
 shader_parameter/vignette_radius = 0.87
 shader_parameter/vignette_softness = 0.12
 shader_parameter/aspect_ratio = 1.77778
@@ -52,9 +61,13 @@ uv1_triplanar = true
 environment = SubResource("Environment_u7hpt")
 
 [node name="DirectionalLight3D" type="DirectionalLight3D" parent="."]
-transform = Transform3D(-0.955793, -0.29404, -1.28529e-08, 0, -4.37114e-08, 1, -0.29404, 0.955793, 4.1779e-08, 0, 0, 0)
+transform = Transform3D(-0.955793, -0.29404, -1.16264e-08, -0.272852, 0.886919, 0.372729, -0.109597, 0.356252, -0.92794, 0.000921249, 0.210339, 0)
 light_energy = 0.85
 shadow_enabled = true
+directional_shadow_mode = 0
+
+[node name="SunMarker" type="Marker3D" parent="DirectionalLight3D"]
+transform = Transform3D(1, -2.23517e-08, -7.45058e-09, 3.72529e-08, 1, -2.98023e-08, 0, 0, 1, -0.944765, 3.07101, 1.2906)
 
 [node name="CharacterBody3D" parent="." node_paths=PackedStringArray("ammo_label") instance=ExtResource("1_1srsd")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.71926, 0)
@@ -70,7 +83,7 @@ material = ExtResource("2_u7hpt")
 
 [node name="Bodycam" type="CanvasLayer" parent="."]
 
-[node name="ColorRect" type="ColorRect" parent="Bodycam" node_paths=PackedStringArray("exposure_camera", "exposure_viewport")]
+[node name="ColorRect" type="ColorRect" parent="Bodycam" node_paths=PackedStringArray("directional_light", "exposure_camera", "exposure_viewport")]
 material = SubResource("ShaderMaterial_oidnl")
 anchors_preset = 15
 anchor_right = 1.0
@@ -79,6 +92,7 @@ grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
 script = ExtResource("4_oidnl")
+directional_light = NodePath("../../DirectionalLight3D")
 exposure_camera = NodePath("ExposureViewport/ExposureCamera")
 exposure_viewport = NodePath("ExposureViewport")
 
@@ -151,6 +165,20 @@ grow_vertical = 0
 theme_override_font_sizes/font_size = 18
 text = "30/90"
 
+[node name="SunFlare" type="TextureRect" parent="Bodycam/UI" node_paths=PackedStringArray("sun_marker")]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+texture = ExtResource("6_w7bqs")
+expand_mode = 1
+stretch_mode = 5
+script = ExtResource("7_2ound")
+sun_marker = NodePath("../../../DirectionalLight3D/SunMarker")
+
 [node name="CSGBox3D2" type="CSGBox3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.91127, -5.22227)
 use_collision = true
@@ -158,15 +186,15 @@ size = Vector3(10, 5, 0.5)
 material = SubResource("StandardMaterial3D_pnj4j")
 
 [node name="CSGBox3D3" type="CSGBox3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, -4.37114e-08, 1, 0, -1, -4.37114e-08, 0, 1.57097, -13.9274)
+transform = Transform3D(1, 0, 0, 0, -4.37114e-08, 1, 0, -1, -4.37114e-08, -1.74493, 1.57097, -13.9274)
 use_collision = true
-size = Vector3(3.94312, 0.905457, 2.71265)
+size = Vector3(7.43299, 0.905457, 2.71265)
 material = SubResource("StandardMaterial3D_pnj4j")
 
 [node name="CSGBox3D5" type="CSGBox3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, -1, -8.74228e-08, 0, 8.74228e-08, -1, 0, 2.92736, -15.7404)
+transform = Transform3D(1, 0, 0, 0, -1, -8.74228e-08, 0, 8.74228e-08, -1, -1.94772, 2.92736, -15.7404)
 use_collision = true
-size = Vector3(3.94312, 0.281952, 3)
+size = Vector3(7.83856, 0.281952, 3)
 material = SubResource("StandardMaterial3D_pnj4j")
 
 [node name="CSGBox3D7" type="CSGBox3D" parent="."]
@@ -181,20 +209,32 @@ use_collision = true
 size = Vector3(2.56189, 0.905457, 3)
 material = SubResource("StandardMaterial3D_pnj4j")
 
-[node name="CSGBox3D4" type="CSGBox3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, -4.37114e-08, 1, 0, -1, -4.37114e-08, 0, 1.76551, -17.2584)
+[node name="CSGBox3D8" type="CSGBox3D" parent="."]
+transform = Transform3D(-4.37114e-08, -1, -8.74228e-08, -1, 4.37114e-08, 3.82137e-15, 0, 8.74228e-08, -1, -5.06832, 1.62188, -16.4914)
 use_collision = true
-size = Vector3(3.94312, 0.554321, 2.71265)
+size = Vector3(2.56189, 0.905457, 1.49805)
+material = SubResource("StandardMaterial3D_pnj4j")
+
+[node name="CSGBox3D9" type="CSGBox3D" parent="."]
+transform = Transform3D(-4.37114e-08, -1, -8.74228e-08, -1, 4.37114e-08, 3.82137e-15, 0, 8.74228e-08, -1, -3.09317, 1.62188, -15.0788)
+use_collision = true
+size = Vector3(2.56189, 0.905457, 1.49805)
+material = SubResource("StandardMaterial3D_pnj4j")
+
+[node name="CSGBox3D4" type="CSGBox3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, -4.37114e-08, 1, 0, -1, -4.37114e-08, -2.01886, 1.76551, -17.2584)
+use_collision = true
+size = Vector3(7.98084, 0.554321, 2.71265)
 material = SubResource("StandardMaterial3D_pnj4j")
 
 [node name="ShootableBox" parent="." instance=ExtResource("7_2ix1y")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 4.14141, 1, 0.124284)
-
-[node name="ShootableBox3" parent="." instance=ExtResource("7_2ix1y")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.41747, 1, 4.7766)
-
-[node name="ShootableBox4" parent="." instance=ExtResource("7_2ix1y")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 4.70185, 1, 4.7766)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 4.30436, 1, 1.52844)
 
 [node name="ShootableBox2" parent="." instance=ExtResource("7_2ix1y")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 4.14141, 1, -8.53357)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.80762, 1, 1.50181)
+
+[node name="ShootableBox3" parent="." instance=ExtResource("7_2ix1y")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -3.86942, 1, 25.87)
+
+[node name="ShootableBox4" parent="." instance=ExtResource("7_2ix1y")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.116131, 1, -6.96203)
