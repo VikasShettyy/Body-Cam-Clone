@@ -7,8 +7,12 @@ extends CharacterBody3D
 # WEAPON
 # ============================================================
 
+@onready var weapon_ads: Node3D = (
+	$CameraPivot/Camera3D/WeaponHolder/WeaponADS
+)
+
 @onready var weapon: Node3D = (
-	$CameraPivot/Camera3D/WeaponHolder/Weapon
+	$CameraPivot/Camera3D/WeaponHolder/WeaponADS/Weapon
 )
 
 @onready var weapon_animation: AnimationPlayer = (
@@ -233,6 +237,23 @@ var empty_click_played := false
 @export_category("Reload")
 @export var reload_sound_delay := 0.55
 
+
+#WEAPON ADS
+
+@export_category("Weapon ADS")
+@export var ads_speed := 10.0
+@export var ads_fov := 55.0
+@export var ads_distance := 0.30
+
+var is_aiming := false
+var default_camera_fov := 75.0
+
+var weapon_ads_base_transform := Transform3D.IDENTITY
+var ads_point_local_transform := Transform3D.IDENTITY
+
+@onready var ads_point: Marker3D = (
+	$CameraPivot/Camera3D/WeaponHolder/WeaponADS/Weapon/ADSPoint
+)
 # ============================================================
 # NODES
 # ============================================================
@@ -265,6 +286,13 @@ func _ready() -> void:
 
 	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 	
+	default_camera_fov = camera.fov
+	weapon_ads_base_transform = weapon_ads.transform
+
+	ads_point_local_transform = (
+		weapon.transform *
+		ads_point.transform
+	)
 	# Remember original camera position.
 	camera_base_position = camera_pivot.position
 
@@ -294,7 +322,7 @@ func _unhandled_input(event: InputEvent) -> void:
 	# --------------------------------------------------------
 	# Mouse button / automatic fire
 	# --------------------------------------------------------
-
+	
 	if event is InputEventMouseButton:
 
 		if event.button_index == MOUSE_BUTTON_LEFT:
@@ -303,7 +331,9 @@ func _unhandled_input(event: InputEvent) -> void:
 
 			is_firing = event.pressed
 
-
+		if event.button_index == MOUSE_BUTTON_RIGHT:
+			is_aiming = event.pressed	
+	
 	# --------------------------------------------------------
 	# Mouse look
 	# --------------------------------------------------------
@@ -403,7 +433,8 @@ func _physics_process(delta: float) -> void:
 
 	handle_muzzle_flash(delta)
 
-
+	handle_weapon_ads(delta)
+	
 # ============================================================
 # MOVEMENT
 # ============================================================
@@ -1334,3 +1365,45 @@ func update_ammo_ui() -> void:
 		current_ammo,
 		reserve_ammo
 	]
+
+func handle_weapon_ads(delta: float) -> void:
+	var target_transform: Transform3D = (
+		weapon_ads_base_transform
+	)
+
+	var target_fov: float = default_camera_fov
+
+	if is_aiming and not is_reloading:
+		var desired_ads_transform := Transform3D(
+			Basis.IDENTITY,
+			Vector3(
+				0.0,
+				0.0,
+				-ads_distance
+			)
+		)
+
+		target_transform = (
+			desired_ads_transform *
+			ads_point_local_transform.affine_inverse()
+		)
+
+		target_fov = ads_fov
+
+	var smoothing: float = (
+		1.0 -
+		exp(-ads_speed * delta)
+	)
+
+	weapon_ads.transform = (
+		weapon_ads.transform.interpolate_with(
+			target_transform,
+			smoothing
+		)
+	)
+
+	camera.fov = lerp(
+		camera.fov,
+		target_fov,
+		smoothing
+	)

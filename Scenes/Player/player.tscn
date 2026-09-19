@@ -41,3 +41,6 @@ fov = 80.0
 
 [node name="Weapon" parent="CameraPivot/Camera3D/WeaponHolder/WeaponADS" instance=ExtResource("2_a3d8c")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.105, -0.15)
+
+[node name="ADSPoint" type="Marker3D" parent="CameraPivot/Camera3D/WeaponHolder/WeaponADS/Weapon"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.0657358, 0.085035, -0.0757533)
