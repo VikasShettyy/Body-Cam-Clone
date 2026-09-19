@@ -1,0 +1,24 @@
+[gd_scene load_steps=3 format=3 uid="uid://bxp4o7lnp7tc2"]
+
+[ext_resource type="Script" uid="uid://blbwjgwycqov0" path="res://Scenes/Player/player.gd" id="1_uvnfx"]
+
+[sub_resource type="CapsuleShape3D" id="CapsuleShape3D_tugb3"]
+radius = 0.35
+height = 1.7
+
+[node name="CharacterBody3D" type="CharacterBody3D"]
+script = ExtResource("1_uvnfx")
+camera_yaw_inertia = 0.004
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="."]
+shape = SubResource("CapsuleShape3D_tugb3")
+
+[node name="Body" type="Node3D" parent="."]
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="Body"]
+
+[node name="CameraPivot" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0)
+
+[node name="Camera3D" type="Camera3D" parent="CameraPivot"]
+fov = 80.0
