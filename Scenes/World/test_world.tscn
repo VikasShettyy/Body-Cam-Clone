@@ -55,8 +55,9 @@ transform = Transform3D(-0.955793, -0.29404, -1.28529e-08, 0, -4.37114e-08, 1, -
 light_energy = 0.85
 shadow_enabled = true
 
-[node name="CharacterBody3D" parent="." instance=ExtResource("1_1srsd")]
+[node name="CharacterBody3D" parent="." node_paths=PackedStringArray("ammo_label") instance=ExtResource("1_1srsd")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.71926, 0)
+ammo_label = NodePath("../Bodycam/UI/Overlay/AmmoLabel")
 walk_bob_amount = 0.09
 walk_bob_frequency = 14.0
 sprint_bob_frequency = 18.0
@@ -111,6 +112,7 @@ script = ExtResource("5_oidnl")
 layout_mode = 1
 offset_right = 44.0
 offset_bottom = 23.0
+theme_override_colors/font_color = Color(0.726223, 3.41728e-06, 5.77569e-07, 1)
 theme_override_font_sizes/font_size = 18
 text = "● REC"
 
@@ -136,6 +138,17 @@ offset_top = -23.0
 grow_horizontal = 0
 grow_vertical = 0
 text = "CAM-01"
+
+[node name="AmmoLabel" type="Label" parent="Bodycam/UI/Overlay"]
+layout_mode = 1
+anchors_preset = 2
+anchor_top = 1.0
+anchor_bottom = 1.0
+offset_top = -26.0
+offset_right = 49.0
+grow_vertical = 0
+theme_override_font_sizes/font_size = 18
+text = "30/90"
 
 [node name="CSGBox3D2" type="CSGBox3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.91127, -5.22227)

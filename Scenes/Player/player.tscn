@@ -1,7 +1,9 @@
-[gd_scene load_steps=4 format=3 uid="uid://bxp4o7lnp7tc2"]
+[gd_scene load_steps=6 format=3 uid="uid://bxp4o7lnp7tc2"]
 
 [ext_resource type="Script" uid="uid://blbwjgwycqov0" path="res://Scenes/Player/player.gd" id="1_uvnfx"]
 [ext_resource type="PackedScene" uid="uid://c0x4d1wrexyj" path="res://Scenes/Player/weapon.tscn" id="2_a3d8c"]
+[ext_resource type="PackedScene" uid="uid://cbedmvvwfv8n8" path="res://Scenes/Player/ShellCasing.tscn" id="2_xpcdj"]
+[ext_resource type="PackedScene" uid="uid://dlbllbk2klx31" path="res://Scenes/Player/BulletImpact.tscn" id="3_mtuoh"]
 
 [sub_resource type="CapsuleShape3D" id="CapsuleShape3D_tugb3"]
 radius = 0.35
@@ -9,9 +11,16 @@ height = 1.7
 
 [node name="CharacterBody3D" type="CharacterBody3D"]
 script = ExtResource("1_uvnfx")
+fire_rate = 12.0
 weapon_idle_amount = 0.001
+walk_bob_amount = 0.05
 camera_yaw_inertia = 0.004
 landing_shake_strength = 0.1
+camera_recoil_amount = 0.09
+camera_recoil_side_amount = 0.05
+shell_scene = ExtResource("2_xpcdj")
+bullet_impact_scene = ExtResource("3_mtuoh")
+reserve_ammo = 300
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="."]
 shape = SubResource("CapsuleShape3D_tugb3")
@@ -28,5 +37,7 @@ fov = 80.0
 
 [node name="WeaponHolder" type="Node3D" parent="CameraPivot/Camera3D"]
 
-[node name="Weapon" parent="CameraPivot/Camera3D/WeaponHolder" instance=ExtResource("2_a3d8c")]
+[node name="WeaponADS" type="Node3D" parent="CameraPivot/Camera3D/WeaponHolder"]
+
+[node name="Weapon" parent="CameraPivot/Camera3D/WeaponHolder/WeaponADS" instance=ExtResource("2_a3d8c")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.105, -0.15)

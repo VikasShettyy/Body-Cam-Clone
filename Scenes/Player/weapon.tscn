@@ -1,23 +1,45 @@
-[gd_scene load_steps=2 format=3 uid="uid://c0x4d1wrexyj"]
+[gd_scene load_steps=8 format=3 uid="uid://c0x4d1wrexyj"]
 
 [ext_resource type="PackedScene" uid="uid://fi06y47y8oou" path="res://Scenes/Animation/gun.tscn" id="1_afku7"]
+[ext_resource type="AudioStream" uid="uid://c2lcuxnmyc4ra" path="res://Assets/SFX/AK47 (mp3cut.net).mp3" id="2_sowxv"]
+[ext_resource type="Texture2D" uid="uid://dknifwbnx53qx" path="res://Materials/muzzle_flash.png" id="2_vvnkl"]
+[ext_resource type="AudioStream" uid="uid://bg6ac41uuhf6a" path="res://Assets/SFX/EmptyClick.mp3" id="4_f3xm5"]
+[ext_resource type="AudioStream" uid="uid://1toxvb72prd5" path="res://Assets/SFX/dragon-studio-gun-reload-2-504027 (mp3cut.net).mp3" id="5_om3e0"]
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_vvnkl"]
+transparency = 1
+shading_mode = 0
+albedo_texture = ExtResource("2_vvnkl")
+
+[sub_resource type="QuadMesh" id="QuadMesh_vvnkl"]
+material = SubResource("StandardMaterial3D_vvnkl")
+size = Vector2(0.2, 0.2)
 
 [node name="Weapon" type="Node3D"]
 
-[node name="CSGCombiner3D" type="CSGCombiner3D" parent="."]
-transform = Transform3D(-1, 0, 8.74228e-08, 0, 1, 0, -8.74228e-08, 0, -1, 0, 0, 0)
-visible = false
-
-[node name="CSGBox3D" type="CSGBox3D" parent="CSGCombiner3D"]
-size = Vector3(0.0270996, 0.0251465, 0.228516)
-
-[node name="CSGBox3D2" type="CSGBox3D" parent="CSGCombiner3D"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.0383311, -0.0928372)
-size = Vector3(0.0270996, 0.0643311, 0.036499)
-
-[node name="CSGBox3D3" type="CSGBox3D" parent="CSGCombiner3D"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.0226547, -0.0276678)
-size = Vector3(0.0270996, 0.0252075, 0.108612)
-
-[node name="Sketchfab_Scene" parent="." instance=ExtResource("1_afku7")]
+[node name="Gun" parent="." instance=ExtResource("1_afku7")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -1.49469, 0.189749)
+
+[node name="Muzzel" type="Marker3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.0668338, 0.0390352, -0.35994)
+
+[node name="GunshotSound" type="AudioStreamPlayer3D" parent="Muzzel"]
+stream = ExtResource("2_sowxv")
+volume_db = -3.0
+max_db = 1.0
+
+[node name="EjectionPoint" type="Marker3D" parent="Muzzel"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.0136373, 0.0190029, 0.195832)
+
+[node name="MuzzleFlash" type="MeshInstance3D" parent="Muzzel"]
+visible = false
+mesh = SubResource("QuadMesh_vvnkl")
+
+[node name="EmptyClickSound" type="AudioStreamPlayer3D" parent="Muzzel"]
+stream = ExtResource("4_f3xm5")
+volume_db = -8.0
+
+[node name="ReloadSound" type="AudioStreamPlayer3D" parent="Muzzel"]
+stream = ExtResource("5_om3e0")
+volume_db = -12.0
+max_distance = 10.0

@@ -1,5 +1,7 @@
 extends CharacterBody3D
 
+#UI Ammo
+@export var ammo_label: Label 
 
 # ============================================================
 # WEAPON
@@ -32,6 +34,33 @@ var weapon_sway_input := Vector2.ZERO
 
 
 # ============================================================
+# WEAPON RECOIL
+# ============================================================
+
+@export_category("Weapon Recoil")
+
+@export var recoil_amount := 0.08
+@export var recoil_rotation := 0.06
+@export var recoil_recovery_speed := 12.0
+@export var recoil_kick_speed := 18.0
+
+var weapon_recoil_position := Vector3.ZERO
+var weapon_recoil_rotation := Vector3.ZERO
+
+
+# ============================================================
+# WEAPON FIRE
+# ============================================================
+
+@export_category("Weapon Fire")
+
+@export var fire_rate := 10.0
+
+var is_firing := false
+var fire_timer := 0.0
+
+
+# ============================================================
 # WEAPON IDLE / BREATHING
 # ============================================================
 
@@ -42,6 +71,7 @@ var weapon_sway_input := Vector2.ZERO
 @export var weapon_idle_smoothness := 5.0
 
 var weapon_idle_time := 0.0
+
 
 # ============================================================
 # WEAPON MOVEMENT BOB
@@ -56,6 +86,7 @@ var weapon_idle_time := 0.0
 @export var weapon_sprint_bob_speed := 11.0
 
 var weapon_bob_time := 0.0
+
 
 # ============================================================
 # MOVEMENT
@@ -130,6 +161,79 @@ var was_on_floor := false
 
 
 # ============================================================
+# CAMERA RECOIL
+# ============================================================
+
+@export_category("Camera Recoil")
+
+@export var camera_recoil_amount := 0.018
+@export var camera_recoil_side_amount := 0.006
+@export var camera_recoil_recovery := 14.0
+
+var camera_recoil := Vector2.ZERO
+
+
+# ============================================================
+# WEAPON EFFECTS
+# ============================================================
+
+@onready var muzzle_flash: MeshInstance3D = (
+	weapon.find_child("MuzzleFlash", true, false)
+)
+
+@onready var gunshot_sound: AudioStreamPlayer3D = (
+	weapon.find_child("GunshotSound", true, false)
+)
+
+@onready var ejection_point: Marker3D = (
+	weapon.find_child("EjectionPoint", true, false)
+)
+
+@export_category("Shell Ejection")
+@export var shell_scene: PackedScene
+@export var shell_impulse := 1.8
+@export var shell_upward_force := 0.6
+@export var shell_lifetime := 4.0
+
+# ============================================================
+# MUZZLE FLASH
+# ============================================================
+
+@export_category("Muzzle Flash")
+
+@export var muzzle_flash_duration := 0.04
+
+var muzzle_flash_timer := 0.0
+
+#Show Bullets
+
+@export_category("Weapon Hit Detection")
+@export var bullet_damage := 25.0
+@export var bullet_range := 100.0
+@export_category("Bullet Impact")
+@export var bullet_impact_scene: PackedScene
+
+#ammo section
+@export_category("Weapon Ammo")
+@onready var empty_click_sound: AudioStreamPlayer3D = (
+	weapon.find_child("EmptyClickSound", true, false)
+)
+@export var magazine_size := 30
+@export var reserve_ammo := 90
+
+var current_ammo := 30
+var is_reloading := false
+var empty_click_played := false
+
+
+#gun audio references
+@onready var reload_sound: AudioStreamPlayer3D = (
+	weapon.find_child("ReloadSound", true, false)
+)
+@export_category("Reload")
+@export var reload_sound_delay := 0.55
+
+# ============================================================
 # NODES
 # ============================================================
 
@@ -160,13 +264,21 @@ var camera_bob_time := 0.0
 func _ready() -> void:
 
 	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
-
+	
 	# Remember original camera position.
 	camera_base_position = camera_pivot.position
 
 	# Remember original weapon position and rotation.
 	weapon_base_position = weapon.position
 	weapon_base_rotation = weapon.rotation
+
+	current_ammo = magazine_size
+	update_ammo_ui()
+	
+	
+	# Make sure muzzle flash starts hidden.
+	if muzzle_flash != null:
+		muzzle_flash.visible = false
 
 	# Print available weapon animations.
 	print("Weapon animations:")
@@ -180,31 +292,16 @@ func _ready() -> void:
 func _unhandled_input(event: InputEvent) -> void:
 
 	# --------------------------------------------------------
-	# Weapon animation testing
+	# Mouse button / automatic fire
 	# --------------------------------------------------------
 
-	if event is InputEventKey and event.pressed:
+	if event is InputEventMouseButton:
 
-		if event.keycode == KEY_1:
-			weapon_animation.play("DRAW")
+		if event.button_index == MOUSE_BUTTON_LEFT:
 
-		elif event.keycode == KEY_2:
-			weapon_animation.play("IDLE")
+			Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 
-		elif event.keycode == KEY_3:
-			weapon_animation.play("INSPEC")
-
-		elif event.keycode == KEY_4:
-			weapon_animation.play("OLSER")
-
-		elif event.keycode == KEY_5:
-			weapon_animation.play("RELOAD1")
-
-		elif event.keycode == KEY_6:
-			weapon_animation.play("RELOAD2")
-
-		elif event.keycode == KEY_7:
-			weapon_animation.play("SHOOT")
+			is_firing = event.pressed
 
 
 	# --------------------------------------------------------
@@ -273,20 +370,15 @@ func _unhandled_input(event: InputEvent) -> void:
 			Input.MOUSE_MODE_VISIBLE
 		)
 
+	#RELOAD ANIMATIon
+	#=====================
+	if event.is_action_pressed("reload"):
+		reload_weapon()
+		
 
-	# --------------------------------------------------------
-	# Capture mouse again
-	# --------------------------------------------------------
-
-	if event is InputEventMouseButton:
-
-		if event.button_index == MOUSE_BUTTON_LEFT:
-
-			Input.mouse_mode = (
-				Input.MOUSE_MODE_CAPTURED
-			)
-
-
+	
+	
+	
 # ============================================================
 # PHYSICS
 # ============================================================
@@ -306,6 +398,10 @@ func _physics_process(delta: float) -> void:
 	handle_camera_shake(delta)
 
 	handle_weapon_sway(delta)
+
+	handle_weapon_fire(delta)
+
+	handle_muzzle_flash(delta)
 
 
 # ============================================================
@@ -340,7 +436,9 @@ func handle_movement(delta: float) -> void:
 
 
 	var target_speed := walk_speed
-
+	
+	#ammo section
+	
 
 	if Input.is_action_pressed("sprint"):
 
@@ -415,10 +513,6 @@ func handle_gravity(delta: float) -> void:
 
 func handle_bodycam_motion(delta: float) -> void:
 
-	# --------------------------------------------------------
-	# Horizontal movement speed
-	# --------------------------------------------------------
-
 	var horizontal_velocity: Vector3 = Vector3(
 		velocity.x,
 		0.0,
@@ -428,18 +522,10 @@ func handle_bodycam_motion(delta: float) -> void:
 	var movement_speed: float = horizontal_velocity.length()
 
 
-	# --------------------------------------------------------
-	# Movement state
-	# --------------------------------------------------------
-
 	var is_moving: bool = (
 		movement_speed > 0.15
 	)
 
-
-	# --------------------------------------------------------
-	# Sprint state
-	# --------------------------------------------------------
 
 	var is_sprinting: bool = (
 		Input.is_action_pressed("sprint")
@@ -470,7 +556,6 @@ func handle_bodycam_motion(delta: float) -> void:
 
 	else:
 
-		# Smoothly stop the bob.
 		camera_bob_time = move_toward(
 			camera_bob_time,
 			0.0,
@@ -580,6 +665,24 @@ func handle_bodycam_motion(delta: float) -> void:
 
 func handle_camera_inertia(delta: float) -> void:
 
+	# ========================================================
+	# CAMERA RECOIL RECOVERY
+	# ========================================================
+
+	var recoil_recovery: float = (
+		1.0
+		- exp(
+			-camera_recoil_recovery *
+			delta
+		)
+	)
+
+	camera_recoil = camera_recoil.lerp(
+		Vector2.ZERO,
+		recoil_recovery
+	)
+
+
 	# --------------------------------------------------------
 	# Smooth vertical look
 	# --------------------------------------------------------
@@ -595,7 +698,7 @@ func handle_camera_inertia(delta: float) -> void:
 
 	camera_pivot.rotation.x = lerp(
 		camera_pivot.rotation.x,
-		look_x,
+		look_x - camera_recoil.x,
 		pitch_smoothing
 	)
 
@@ -613,7 +716,7 @@ func handle_camera_inertia(delta: float) -> void:
 
 	camera_pivot.rotation.y = lerp(
 		camera_pivot.rotation.y,
-		camera_yaw_offset,
+		camera_yaw_offset + camera_recoil.y,
 		pitch_smoothing
 	)
 
@@ -722,10 +825,37 @@ func handle_camera_shake(delta: float) -> void:
 
 
 # ============================================================
-# WEAPON SWAY + IDLE
+# WEAPON SWAY + RECOIL + BOB
 # ============================================================
 
 func handle_weapon_sway(delta: float) -> void:
+
+	# ========================================================
+	# RECOIL RECOVERY
+	# ========================================================
+
+	var recoil_recovery: float = (
+		1.0
+		- exp(
+			-recoil_recovery_speed *
+			delta
+		)
+	)
+
+	weapon_recoil_position = weapon_recoil_position.lerp(
+		Vector3.ZERO,
+		recoil_recovery
+	)
+
+	weapon_recoil_rotation = weapon_recoil_rotation.lerp(
+		Vector3.ZERO,
+		recoil_recovery
+	)
+
+
+	# ========================================================
+	# MOVEMENT STATE
+	# ========================================================
 
 	var horizontal_velocity: Vector3 = Vector3(
 		velocity.x,
@@ -735,7 +865,9 @@ func handle_weapon_sway(delta: float) -> void:
 
 	var movement_speed: float = horizontal_velocity.length()
 
-	var is_moving: bool = movement_speed > 0.15
+	var is_moving: bool = (
+		movement_speed > 0.15
+	)
 
 	var is_sprinting: bool = (
 		Input.is_action_pressed("sprint")
@@ -748,10 +880,17 @@ func handle_weapon_sway(delta: float) -> void:
 	# ========================================================
 
 	var sway_rotation: Vector3 = Vector3(
-		weapon_sway_input.y * weapon_sway_amount,
-		weapon_sway_input.x * weapon_sway_amount,
-		-weapon_sway_input.x * weapon_sway_amount * 0.5
+		weapon_sway_input.y
+		* weapon_sway_amount,
+
+		weapon_sway_input.x
+		* weapon_sway_amount,
+
+		-weapon_sway_input.x
+		* weapon_sway_amount
+		* 0.5
 	)
+
 
 	sway_rotation.x = clamp(
 		sway_rotation.x,
@@ -778,32 +917,50 @@ func handle_weapon_sway(delta: float) -> void:
 
 	var movement_bob := Vector3.ZERO
 
+
 	if is_moving and is_on_floor():
 
 		var bob_speed: float = weapon_bob_speed
 		var bob_amount: float = weapon_bob_amount
 
-		if is_sprinting:
-			bob_speed = weapon_sprint_bob_speed
-			bob_amount = weapon_sprint_bob_amount
 
-		weapon_bob_time += delta * bob_speed
+		if is_sprinting:
+
+			bob_speed = (
+				weapon_sprint_bob_speed
+			)
+
+			bob_amount = (
+				weapon_sprint_bob_amount
+			)
+
+
+		weapon_bob_time += (
+			delta *
+			bob_speed
+		)
+
 
 		movement_bob.x = (
 			cos(weapon_bob_time)
 			* bob_amount
 		)
 
+
 		movement_bob.y = (
-			abs(sin(weapon_bob_time))
+			abs(
+				sin(weapon_bob_time)
+			)
 			* bob_amount
 		)
+
 
 		movement_bob.z = (
 			sin(weapon_bob_time * 0.5)
 			* bob_amount
 			* 0.5
 		)
+
 
 	else:
 
@@ -856,6 +1013,7 @@ func handle_weapon_sway(delta: float) -> void:
 		weapon_base_position
 		+ idle_position
 		+ movement_bob
+		+ weapon_recoil_position
 	)
 
 
@@ -866,6 +1024,7 @@ func handle_weapon_sway(delta: float) -> void:
 	var target_rotation: Vector3 = (
 		weapon_base_rotation
 		+ sway_rotation
+		+ weapon_recoil_rotation
 	)
 
 
@@ -880,6 +1039,7 @@ func handle_weapon_sway(delta: float) -> void:
 			delta
 		)
 	)
+
 
 	weapon.rotation = weapon.rotation.lerp(
 		target_rotation,
@@ -899,6 +1059,7 @@ func handle_weapon_sway(delta: float) -> void:
 		)
 	)
 
+
 	weapon.position = weapon.position.lerp(
 		target_position,
 		position_smoothing
@@ -917,7 +1078,259 @@ func handle_weapon_sway(delta: float) -> void:
 		)
 	)
 
+
 	weapon_sway_input = weapon_sway_input.lerp(
 		Vector2.ZERO,
 		input_recovery
 	)
+
+
+# ============================================================
+# WEAPON FIRE
+# ============================================================
+
+func handle_weapon_fire(delta: float) -> void:
+	if is_reloading:
+		fire_timer = 0.0
+		return
+
+	if not is_firing:
+		fire_timer = 0.0
+		empty_click_played = false
+		return
+
+	if current_ammo <= 0:
+		fire_timer = 0.0
+
+		if not empty_click_played:
+			if empty_click_sound != null:
+				empty_click_sound.play()
+
+			empty_click_played = true
+
+		return
+
+	empty_click_played = false
+
+	fire_timer -= delta
+
+	if fire_timer <= 0.0:
+		shoot()
+		current_ammo -= 1
+		update_ammo_ui()
+		fire_timer = 1.0 / fire_rate
+# ============================================================
+# SHOOT
+# ============================================================
+
+func shoot() -> void:
+	weapon_animation.play("SHOOT")
+
+	weapon_recoil_position.z += recoil_amount
+	weapon_recoil_rotation.x -= recoil_rotation
+
+	camera_recoil.x += camera_recoil_amount
+	camera_recoil.y += randf_range(
+		-camera_recoil_side_amount,
+		camera_recoil_side_amount
+	)
+
+	if muzzle_flash != null:
+		muzzle_flash.visible = true
+		muzzle_flash_timer = muzzle_flash_duration
+
+	if gunshot_sound != null:
+		gunshot_sound.play()
+
+	eject_shell()
+	fire_bullet()
+	
+	
+func eject_shell() -> void:
+	if shell_scene == null:
+		return
+
+	if ejection_point == null:
+		return
+
+	var shell := shell_scene.instantiate() as RigidBody3D
+
+	if shell == null:
+		return
+
+	get_tree().current_scene.add_child(shell)
+
+	shell.global_position = ejection_point.global_position
+	shell.global_basis = ejection_point.global_basis
+
+	var right_direction: Vector3 = ejection_point.global_transform.basis.x
+	var up_direction: Vector3 = ejection_point.global_transform.basis.y
+
+	var random_direction: Vector3 = (
+		right_direction * randf_range(0.8, 1.2)
+		+ up_direction * randf_range(0.2, 0.5)
+	)
+
+	random_direction += Vector3(
+		randf_range(-0.2, 0.2),
+		randf_range(-0.1, 0.2),
+		randf_range(-0.2, 0.2)
+	)
+
+	random_direction = random_direction.normalized()
+
+	shell.apply_central_impulse(
+		random_direction * shell_impulse
+		+ Vector3.UP * shell_upward_force
+	)
+
+
+	# --------------------------------------------------------
+	# Gunshot sound
+	# --------------------------------------------------------
+
+	if gunshot_sound != null:
+
+		gunshot_sound.play()
+
+
+# ============================================================
+# MUZZLE FLASH
+# ============================================================
+
+func handle_muzzle_flash(delta: float) -> void:
+
+	if muzzle_flash_timer <= 0.0:
+
+		return
+
+
+	muzzle_flash_timer -= delta
+
+
+	if muzzle_flash_timer <= 0.0:
+
+		if muzzle_flash != null:
+
+			muzzle_flash.visible = false
+
+func fire_bullet() -> void:
+	var viewport_size := get_viewport().get_visible_rect().size
+	var screen_center := viewport_size * 0.5
+
+	var ray_origin := camera.project_ray_origin(screen_center)
+	var ray_direction := camera.project_ray_normal(screen_center)
+
+	var ray_end := (
+		ray_origin
+		+ ray_direction * bullet_range
+	)
+
+	var query := PhysicsRayQueryParameters3D.create(
+		ray_origin,
+		ray_end
+	)
+
+	query.exclude = [self]
+
+	var result := get_world_3d().direct_space_state.intersect_ray(
+		query
+	)
+
+	if result.is_empty():
+		return
+
+	var hit_position: Vector3 = result["position"]
+	var hit_normal: Vector3 = result["normal"]
+	var hit_object: Object = result["collider"]
+
+	handle_bullet_hit(
+		hit_position,
+		hit_normal,
+		hit_object
+	)
+	
+func handle_bullet_hit(
+	hit_position: Vector3,
+	hit_normal: Vector3,
+	hit_object: Object
+) -> void:
+
+	print("Hit: ", hit_object)
+	print("Position: ", hit_position)
+
+	spawn_bullet_impact(
+		hit_position,
+		hit_normal
+	)
+
+func spawn_bullet_impact(
+	hit_position: Vector3,
+	hit_normal: Vector3
+) -> void:
+
+	if bullet_impact_scene == null:
+		return
+
+	var impact := bullet_impact_scene.instantiate() as Node3D
+
+	if impact == null:
+		return
+
+	get_tree().current_scene.add_child(impact)
+
+	# Move slightly away from the wall
+	impact.global_position = (
+		hit_position + hit_normal * 0.005
+	)
+
+	# QuadMesh faces +Z.
+	# We want +Z to point in the same direction as the wall normal.
+	impact.global_basis = Basis.looking_at(
+		-hit_normal,
+		Vector3.UP
+	)
+
+func reload_weapon() -> void:
+	if is_reloading:
+		return
+
+	if current_ammo >= magazine_size:
+		return
+
+	if reserve_ammo <= 0:
+		return
+
+	is_reloading = true
+	is_firing = false
+	fire_timer = 0.0
+
+	weapon_animation.play("RELOAD1")
+
+	await get_tree().create_timer(
+		reload_sound_delay
+	).timeout
+
+	if reload_sound != null and is_reloading:
+		reload_sound.play()
+
+	await weapon_animation.animation_finished
+
+	var ammo_needed: int = magazine_size - current_ammo
+	var ammo_to_load: int = min(ammo_needed, reserve_ammo)
+
+	current_ammo += ammo_to_load
+	reserve_ammo -= ammo_to_load
+	
+	update_ammo_ui()
+	
+	is_reloading = false
+
+func update_ammo_ui() -> void:
+	if ammo_label == null:
+		return
+
+	ammo_label.text = "%d / %d" % [
+		current_ammo,
+		reserve_ammo
+	]

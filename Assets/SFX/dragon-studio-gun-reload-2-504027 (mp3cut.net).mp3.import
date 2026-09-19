@@ -1,0 +1,19 @@
+[remap]
+
+importer="mp3"
+type="AudioStreamMP3"
+uid="uid://1toxvb72prd5"
+path="res://.godot/imported/dragon-studio-gun-reload-2-504027 (mp3cut.net).mp3-8c406a9e204fc0c8df5a570458c07ad6.mp3str"
+
+[deps]
+
+source_file="res://Assets/SFX/dragon-studio-gun-reload-2-504027 (mp3cut.net).mp3"
+dest_files=["res://.godot/imported/dragon-studio-gun-reload-2-504027 (mp3cut.net).mp3-8c406a9e204fc0c8df5a570458c07ad6.mp3str"]
+
+[params]
+
+loop=false
+loop_offset=0
+bpm=0
+beat_count=0
+bar_beats=4

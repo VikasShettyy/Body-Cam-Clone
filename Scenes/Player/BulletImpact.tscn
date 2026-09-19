@@ -1,0 +1,26 @@
+[gd_scene load_steps=6 format=3 uid="uid://dlbllbk2klx31"]
+
+[ext_resource type="Texture2D" uid="uid://dxaajjkweqhj" path="res://Materials/bulletHole.png" id="1_di45c"]
+[ext_resource type="Script" uid="uid://biiqfi3nqnfu5" path="res://Scenes/Player/bullet_impact.gd" id="1_pbpy1"]
+[ext_resource type="AudioStream" uid="uid://dq3dvf65fc16i" path="res://Assets/SFX/ImpactSound.mp3" id="3_i141m"]
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_pbpy1"]
+transparency = 1
+cull_mode = 2
+shading_mode = 0
+albedo_texture = ExtResource("1_di45c")
+
+[sub_resource type="QuadMesh" id="QuadMesh_i141m"]
+material = SubResource("StandardMaterial3D_pbpy1")
+size = Vector2(0.08, 0.08)
+
+[node name="BulletImpact" type="Node3D"]
+script = ExtResource("1_pbpy1")
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="."]
+mesh = SubResource("QuadMesh_i141m")
+
+[node name="ImpactSound" type="AudioStreamPlayer3D" parent="."]
+stream = ExtResource("3_i141m")
+volume_db = -80.0
+max_distance = 10.0
