@@ -223,7 +223,6 @@ func _physics_process(delta: float) -> void:
 	handle_bodycam_motion(delta)
 
 	handle_camera_inertia(delta)
-	
 	handle_camera_shake(delta)
 
 # ============================================================
