@@ -6,9 +6,8 @@
 [ext_resource type="Shader" uid="uid://bew51f854lsn3" path="res://Shaders/fisheye.gdshader" id="4_pnj4j"]
 [ext_resource type="Script" uid="uid://ds5rwvey655q3" path="res://Scripts/Camera/bodycam_overlay.gd" id="5_oidnl"]
 [ext_resource type="Texture2D" uid="uid://c1x4lvs6i0jjk" path="res://Prototype_Textures/Light/texture_02.png" id="6_oidnl"]
-[ext_resource type="Texture2D" uid="uid://cn1wk0kp3x6pn" path="res://Materials/SunFlare.png" id="6_w7bqs"]
 [ext_resource type="PackedScene" uid="uid://dhv0gmqm7gx7g" path="res://Scenes/Objects/shootable_box.tscn" id="7_2ix1y"]
-[ext_resource type="Script" uid="uid://dsk086d8ttmmv" path="res://Scripts/Camera/sun_lens_flare.gd" id="7_2ound"]
+[ext_resource type="PackedScene" uid="uid://dnexe6mo3f5yd" path="res://Scenes/enemy/enemy.tscn" id="8_nekki"]
 
 [sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_18ja4"]
 sky_top_color = Color(0.603957, 0.668823, 0.759212, 1)
@@ -21,6 +20,7 @@ sky_material = SubResource("ProceduralSkyMaterial_18ja4")
 
 [sub_resource type="Environment" id="Environment_u7hpt"]
 background_mode = 2
+background_energy_multiplier = 0.6
 sky = SubResource("Sky_7vjjh")
 ambient_light_source = 3
 ambient_light_sky_contribution = 0.08
@@ -55,6 +55,10 @@ shader_parameter/aspect_ratio = 1.77778
 albedo_texture = ExtResource("6_oidnl")
 uv1_triplanar = true
 
+[sub_resource type="NavigationMesh" id="NavigationMesh_w7bqs"]
+vertices = PackedVector3Array(-49.5, 1, -49.5, -49.5, 1, 49.5, 49.5, 1, 49.5, 49.5, 1, -49.5)
+polygons = [PackedInt32Array(3, 2, 0), PackedInt32Array(0, 2, 1)]
+
 [node name="Test_world" type="Node3D"]
 
 [node name="WorldEnvironment" type="WorldEnvironment" parent="."]
@@ -75,11 +79,6 @@ ammo_label = NodePath("../Bodycam/UI/Overlay/AmmoLabel")
 walk_bob_amount = 0.09
 walk_bob_frequency = 14.0
 sprint_bob_frequency = 18.0
-
-[node name="CSGBox3D" type="CSGBox3D" parent="."]
-use_collision = true
-size = Vector3(100, 1, 100)
-material = ExtResource("2_u7hpt")
 
 [node name="Bodycam" type="CanvasLayer" parent="."]
 
@@ -165,20 +164,6 @@ grow_vertical = 0
 theme_override_font_sizes/font_size = 18
 text = "30/90"
 
-[node name="SunFlare" type="TextureRect" parent="Bodycam/UI" node_paths=PackedStringArray("sun_marker")]
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-mouse_filter = 2
-texture = ExtResource("6_w7bqs")
-expand_mode = 1
-stretch_mode = 5
-script = ExtResource("7_2ound")
-sun_marker = NodePath("../../../DirectionalLight3D/SunMarker")
-
 [node name="CSGBox3D2" type="CSGBox3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.91127, -5.22227)
 use_collision = true
@@ -201,6 +186,12 @@ material = SubResource("StandardMaterial3D_pnj4j")
 transform = Transform3D(1, 0, 0, 0, -1, -8.74228e-08, 0, 8.74228e-08, -1, 7.58149, 2.92736, -15.7404)
 use_collision = true
 size = Vector3(11.3457, 0.281952, 8.96875)
+material = SubResource("StandardMaterial3D_pnj4j")
+
+[node name="CSGBox3D10" type="CSGBox3D" parent="."]
+transform = Transform3D(0.852977, 0.521948, 4.56301e-08, 0.521948, -0.852977, -7.45697e-08, 3.20296e-15, 8.74228e-08, -1, 14.1217, 1.02199, 6.0054)
+use_collision = true
+size = Vector3(6.6748, 0.281952, 8.96875)
 material = SubResource("StandardMaterial3D_pnj4j")
 
 [node name="CSGBox3D6" type="CSGBox3D" parent="."]
@@ -238,3 +229,14 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -3.86942, 1, 25.87)
 
 [node name="ShootableBox4" parent="." instance=ExtResource("7_2ix1y")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.116131, 1, -6.96203)
+
+[node name="NavigationRegion3D" type="NavigationRegion3D" parent="."]
+navigation_mesh = SubResource("NavigationMesh_w7bqs")
+
+[node name="CSGBox3D" type="CSGBox3D" parent="NavigationRegion3D"]
+use_collision = true
+size = Vector3(100, 1, 100)
+material = ExtResource("2_u7hpt")
+
+[node name="CharacterBody3D2" parent="." instance=ExtResource("8_nekki")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -13.7339, 1.5, -3.37456)

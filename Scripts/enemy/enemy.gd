@@ -1,0 +1,544 @@
+extends CharacterBody3D
+
+
+enum State {
+	IDLE,
+	CHASING,
+	ATTACKING,
+	DEAD
+}
+
+
+@export_category("Movement")
+@export var move_speed := 2.5
+@export var acceleration := 8.0
+@export var gravity := 18.0
+
+
+@export_category("Detection")
+@export var detection_distance := 20.0
+
+
+@export_category("Navigation")
+@export var repath_interval := 0.25
+@export var waypoint_reach_distance := 0.6
+
+
+@export_category("Combat")
+@export var attack_range := 1.5
+@export var attack_damage := 20.0
+@export var attack_cooldown := 1.2
+
+
+@onready var navigation_agent: NavigationAgent3D = $NavigationAgent3D
+@onready var damageable: Damageable = $Damageable
+
+
+var player: CharacterBody3D = null
+var state: State = State.IDLE
+
+var attack_timer := 0.0
+var repath_timer := 0.0
+
+var navigation_path: PackedVector3Array = PackedVector3Array()
+var path_index := 0
+
+var navigation_ready := false
+
+
+func _ready() -> void:
+
+	damageable.died.connect(_on_died)
+
+	# We are using NavigationServer3D directly.
+	# The NavigationAgent is kept in the scene but is not
+	# responsible for movement.
+
+	navigation_agent.avoidance_enabled = false
+
+	call_deferred("initialize_navigation")
+
+
+func initialize_navigation() -> void:
+
+	await get_tree().physics_frame
+	await get_tree().physics_frame
+
+	navigation_ready = true
+
+	print("Enemy navigation initialized.")
+
+
+func _physics_process(delta: float) -> void:
+
+	if state == State.DEAD:
+		return
+
+	handle_gravity(delta)
+
+	attack_timer = max(
+		attack_timer - delta,
+		0.0
+	)
+
+	find_player()
+
+	match state:
+
+		State.IDLE:
+			handle_idle(delta)
+
+		State.CHASING:
+			handle_chasing(delta)
+
+		State.ATTACKING:
+			handle_attack(delta)
+
+	move_and_slide()
+
+
+# ============================================================
+# GRAVITY
+# ============================================================
+
+func handle_gravity(delta: float) -> void:
+
+	if not is_on_floor():
+
+		velocity.y -= gravity * delta
+
+	else:
+
+		velocity.y = 0.0
+
+
+# ============================================================
+# FIND PLAYER
+# ============================================================
+
+func find_player() -> void:
+
+	if player == null:
+
+		var players := (
+			get_tree().get_nodes_in_group("player")
+		)
+
+		if players.is_empty():
+			return
+
+		player = players[0] as CharacterBody3D
+
+		print(
+			"Enemy found player: ",
+			player.name
+		)
+
+	if player == null:
+		return
+
+
+	var distance := (
+		global_position.distance_to(
+			player.global_position
+		)
+	)
+
+
+	if distance <= attack_range:
+
+		state = State.ATTACKING
+
+	elif distance <= detection_distance:
+
+		if state != State.CHASING:
+
+			state = State.CHASING
+
+			repath_timer = repath_interval
+
+	else:
+
+		state = State.IDLE
+
+
+# ============================================================
+# IDLE
+# ============================================================
+
+func handle_idle(delta: float) -> void:
+
+	stop_horizontal(delta)
+
+	navigation_path.clear()
+
+	path_index = 0
+
+
+# ============================================================
+# CHASING
+# ============================================================
+
+func handle_chasing(delta: float) -> void:
+
+	if player == null:
+
+		state = State.IDLE
+
+		return
+
+
+	var distance := (
+		global_position.distance_to(
+			player.global_position
+		)
+	)
+
+
+	if distance <= attack_range:
+
+		state = State.ATTACKING
+
+		stop_horizontal(delta)
+
+		return
+
+
+	if not navigation_ready:
+
+		stop_horizontal(delta)
+
+		return
+
+
+	# --------------------------------------------------------
+	# REBUILD PATH PERIODICALLY
+	# --------------------------------------------------------
+
+	repath_timer += delta
+
+
+	if repath_timer >= repath_interval:
+
+		repath_timer = 0.0
+
+		build_navigation_path()
+
+
+	# --------------------------------------------------------
+	# FOLLOW PATH
+	# --------------------------------------------------------
+
+	if navigation_path.is_empty():
+
+		stop_horizontal(delta)
+
+		return
+
+
+	if path_index >= navigation_path.size():
+
+		stop_horizontal(delta)
+
+		return
+
+
+	var waypoint := navigation_path[path_index]
+
+
+	var direction := (
+		waypoint -
+		global_position
+	)
+
+
+	direction.y = 0.0
+
+
+	var distance_to_waypoint := (
+		direction.length()
+	)
+
+
+	# --------------------------------------------------------
+	# REACHED WAYPOINT
+	# --------------------------------------------------------
+
+	if distance_to_waypoint <= waypoint_reach_distance:
+
+		path_index += 1
+
+		if path_index >= navigation_path.size():
+
+			stop_horizontal(delta)
+
+		return
+
+
+	# --------------------------------------------------------
+	# MOVE TOWARD WAYPOINT
+	# --------------------------------------------------------
+
+	direction = direction.normalized()
+
+
+	velocity.x = move_toward(
+		velocity.x,
+		direction.x * move_speed,
+		acceleration * delta
+	)
+
+
+	velocity.z = move_toward(
+		velocity.z,
+		direction.z * move_speed,
+		acceleration * delta
+	)
+
+
+	# --------------------------------------------------------
+	# ROTATE
+	# --------------------------------------------------------
+
+	var target_rotation := atan2(
+		-direction.x,
+		-direction.z
+	)
+
+
+	rotation.y = lerp_angle(
+		rotation.y,
+		target_rotation,
+		8.0 * delta
+	)
+
+
+# ============================================================
+# BUILD NAVIGATION PATH
+# ============================================================
+
+func build_navigation_path() -> void:
+
+	if player == null:
+		return
+
+
+	var navigation_map := (
+		navigation_agent.get_navigation_map()
+	)
+
+
+	if not navigation_map.is_valid():
+
+		print(
+			"ERROR: Navigation map is invalid."
+		)
+
+		return
+
+
+	var start_position := (
+		NavigationServer3D.map_get_closest_point(
+			navigation_map,
+			global_position
+		)
+	)
+
+
+	var target_position := (
+		NavigationServer3D.map_get_closest_point(
+			navigation_map,
+			player.global_position
+		)
+	)
+
+
+	var new_path := (
+		NavigationServer3D.map_get_path(
+			navigation_map,
+			start_position,
+			target_position,
+			true
+		)
+	)
+
+
+	if new_path.is_empty():
+
+		print(
+			"Enemy could not find navigation path."
+		)
+
+		navigation_path.clear()
+
+		path_index = 0
+
+		return
+
+
+	navigation_path = new_path
+
+	# The first point is normally the enemy's
+	# current navigation position, so skip it.
+
+	if navigation_path.size() > 1:
+
+		path_index = 1
+
+	else:
+
+		path_index = 0
+
+
+# ============================================================
+# ATTACK
+# ============================================================
+
+func handle_attack(delta: float) -> void:
+
+	stop_horizontal(delta)
+
+
+	if player == null:
+
+		state = State.IDLE
+
+		return
+
+
+	var direction := (
+		player.global_position -
+		global_position
+	)
+
+
+	direction.y = 0.0
+
+
+	if direction.length() > 0.01:
+
+		direction = direction.normalized()
+
+
+		var target_rotation := atan2(
+			-direction.x,
+			-direction.z
+		)
+
+
+		rotation.y = lerp_angle(
+			rotation.y,
+			target_rotation,
+			10.0 * delta
+		)
+
+
+	var distance := (
+		global_position.distance_to(
+			player.global_position
+		)
+	)
+
+
+	if distance > attack_range:
+
+		state = State.CHASING
+
+		repath_timer = repath_interval
+
+		return
+
+
+	if attack_timer > 0.0:
+		return
+
+
+	attack_timer = attack_cooldown
+
+	perform_attack()
+
+
+# ============================================================
+# PERFORM ATTACK
+# ============================================================
+
+func perform_attack() -> void:
+
+	if player == null:
+		return
+
+
+	print("Enemy attacks player!")
+
+
+	var player_damageable := (
+		player.find_child(
+			"Damageable",
+			true,
+			false
+		) as Damageable
+	)
+
+
+	if player_damageable == null:
+
+		print(
+			"Player does not have a Damageable node!"
+		)
+
+		return
+
+
+	var attack_direction := (
+		player.global_position -
+		global_position
+	)
+
+
+	if attack_direction.length() > 0.01:
+
+		attack_direction = (
+			attack_direction.normalized()
+		)
+
+
+	player_damageable.take_damage(
+		attack_damage,
+		player.global_position,
+		attack_direction
+	)
+
+
+# ============================================================
+# STOP
+# ============================================================
+
+func stop_horizontal(delta: float) -> void:
+
+	velocity.x = move_toward(
+		velocity.x,
+		0.0,
+		acceleration * delta
+	)
+
+
+	velocity.z = move_toward(
+		velocity.z,
+		0.0,
+		acceleration * delta
+	)
+
+
+# ============================================================
+# DEATH
+# ============================================================
+
+func _on_died() -> void:
+
+	state = State.DEAD
+
+	velocity = Vector3.ZERO
+
+	navigation_path.clear()
+
+	print("Enemy died")

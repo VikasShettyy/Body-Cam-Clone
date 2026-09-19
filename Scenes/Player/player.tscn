@@ -1,22 +1,22 @@
-[gd_scene load_steps=7 format=3 uid="uid://bxp4o7lnp7tc2"]
+[gd_scene load_steps=8 format=3 uid="uid://bxp4o7lnp7tc2"]
 
 [ext_resource type="Script" uid="uid://blbwjgwycqov0" path="res://Scenes/Player/player.gd" id="1_uvnfx"]
 [ext_resource type="PackedScene" uid="uid://c0x4d1wrexyj" path="res://Scenes/Player/weapon.tscn" id="2_a3d8c"]
 [ext_resource type="PackedScene" uid="uid://cbedmvvwfv8n8" path="res://Scenes/Player/ShellCasing.tscn" id="2_xpcdj"]
 [ext_resource type="PackedScene" uid="uid://dlbllbk2klx31" path="res://Scenes/Player/BulletImpact.tscn" id="3_mtuoh"]
 [ext_resource type="AudioStream" uid="uid://dbhuofwefbrcj" path="res://Assets/SFX/Player/footsteps.mp3" id="5_htcer"]
+[ext_resource type="Script" uid="uid://0fswi71mer7s" path="res://Scripts/Systems/damageable.gd" id="6_dd0ac"]
 
 [sub_resource type="CapsuleShape3D" id="CapsuleShape3D_tugb3"]
 radius = 0.35
 height = 1.7
 
-[node name="CharacterBody3D" type="CharacterBody3D"]
+[node name="CharacterBody3D" type="CharacterBody3D" groups=["player"]]
 script = ExtResource("1_uvnfx")
 fire_rate = 12.0
 weapon_idle_amount = 0.001
 walk_bob_amount = 0.05
 camera_yaw_inertia = 0.004
-landing_shake_strength = 0.1
 camera_recoil_amount = 0.09
 camera_recoil_side_amount = 0.05
 shell_scene = ExtResource("2_xpcdj")
@@ -50,3 +50,7 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.0657358, 0.099947, -0.07575
 stream = ExtResource("5_htcer")
 volume_db = -25.0
 max_distance = 15.0
+
+[node name="Damageable" type="Node" parent="."]
+script = ExtResource("6_dd0ac")
+metadata/_custom_type_script = "uid://0fswi71mer7s"

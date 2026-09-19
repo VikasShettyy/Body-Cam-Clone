@@ -1,0 +1,44 @@
+[gd_scene load_steps=6 format=3 uid="uid://dnexe6mo3f5yd"]
+
+[ext_resource type="Script" uid="uid://bhho1hgcmph7v" path="res://Scripts/enemy/enemy.gd" id="1_7xxa4"]
+[ext_resource type="Script" uid="uid://0fswi71mer7s" path="res://Scripts/Systems/damageable.gd" id="1_swltt"]
+
+[sub_resource type="CapsuleShape3D" id="CapsuleShape3D_7xxa4"]
+
+[sub_resource type="CapsuleMesh" id="CapsuleMesh_fwmcv"]
+
+[sub_resource type="SphereShape3D" id="SphereShape3D_is6lh"]
+radius = 12.0
+
+[node name="CharacterBody3D" type="CharacterBody3D"]
+script = ExtResource("1_7xxa4")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="."]
+shape = SubResource("CapsuleShape3D_7xxa4")
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="."]
+mesh = SubResource("CapsuleMesh_fwmcv")
+skeleton = NodePath("../CollisionShape3D")
+
+[node name="NavigationAgent3D" type="NavigationAgent3D" parent="."]
+path_desired_distance = 0.5
+target_desired_distance = 1.5
+path_max_distance = 20.01
+height = 1.8
+radius = 0.35
+neighbor_distance = 2.0
+max_neighbors = 8
+time_horizon_obstacles = 1.0
+max_speed = 2.5
+
+[node name="DetectionArea" type="Area3D" parent="."]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="DetectionArea"]
+shape = SubResource("SphereShape3D_is6lh")
+
+[node name="Damageable" type="Node" parent="."]
+script = ExtResource("1_swltt")
+metadata/_custom_type_script = "uid://0fswi71mer7s"
+
+[node name="Head" type="Marker3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.721418, 0)

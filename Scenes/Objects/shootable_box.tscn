@@ -32,3 +32,7 @@ metadata/_custom_type_script = "uid://uosxnmc2pxob"
 [node name="MetalImpactSound" type="AudioStreamPlayer3D" parent="SurfaceType"]
 stream = ExtResource("4_rv1p7")
 max_distance = 5.0
+
+[node name="NavigationObstacle3D" type="NavigationObstacle3D" parent="."]
+radius = 0.6
+height = 1.5
