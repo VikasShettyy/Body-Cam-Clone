@@ -27,6 +27,7 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.0672968, 0.0376461, -0.3599
 stream = ExtResource("2_sowxv")
 volume_db = -3.0
 max_db = 1.0
+bus = &"Reverb"
 
 [node name="EjectionPoint" type="Marker3D" parent="Muzzel"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.0136373, 0.0190029, 0.236214)

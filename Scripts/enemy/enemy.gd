@@ -1,6 +1,9 @@
 extends CharacterBody3D
 
 
+@export_category("Animation")
+@export var run_animation_base_speed := 1.0
+
 enum State {
 	IDLE,
 	CHASING,
@@ -11,7 +14,7 @@ enum State {
 
 @export_category("Movement")
 @export var move_speed := 2.5
-@export var acceleration := 8.0
+@export var acceleration := 10.0
 @export var gravity := 18.0
 
 
@@ -20,9 +23,8 @@ enum State {
 
 
 @export_category("Navigation")
-@export var repath_interval := 0.25
-@export var waypoint_reach_distance := 0.6
-
+@export var repath_interval := 0.15
+@export var waypoint_reach_distance := 0.9
 
 @export_category("Combat")
 @export var attack_range := 1.5
@@ -33,6 +35,10 @@ enum State {
 @onready var navigation_agent: NavigationAgent3D = $NavigationAgent3D
 @onready var damageable: Damageable = $Damageable
 
+@onready var animation_tree: AnimationTree = $AnimationTree
+@onready var animation_state: AnimationNodeStateMachinePlayback = (
+	animation_tree.get("parameters/playback")
+)
 
 var player: CharacterBody3D = null
 var state: State = State.IDLE
@@ -45,25 +51,30 @@ var path_index := 0
 
 var navigation_ready := false
 
+var current_animation := ""
 #Avoidence
 
 @export_category("Navigation Recovery")
-@export var stuck_check_time := 1.0
-@export var stuck_distance_threshold := 0.15
-@export var recovery_repath_delay := 0.3
+@export var stuck_check_time := 0.7
+@export var stuck_distance_threshold := 0.08
+@export var recovery_repath_delay := 0.15
 var stuck_timer := 0.0
 var recovery_timer := 0.0
 var last_position := Vector3.ZERO
 
 
 func _ready() -> void:
-
+	
 	damageable.died.connect(_on_died)
+
+	animation_tree.active = true
+	animation_state.start("Idle")
 
 	navigation_agent.avoidance_enabled = false
 
 	last_position = global_position
-
+	print("AnimationTree active: ", animation_tree.active)
+	print("Animation state: ", animation_state.get_current_node())
 	call_deferred("initialize_navigation")
 
 func initialize_navigation() -> void:
@@ -100,6 +111,8 @@ func _physics_process(delta: float) -> void:
 
 		State.ATTACKING:
 			handle_attack(delta)
+
+	update_animation()
 
 	move_and_slide()
 
@@ -172,7 +185,48 @@ func find_player() -> void:
 
 		state = State.IDLE
 
+func update_animation() -> void:
 
+	var target_animation := ""
+
+	match state:
+
+		State.IDLE:
+			target_animation = "Idle"
+
+		State.CHASING:
+			target_animation = "Run"
+
+		State.ATTACKING:
+			target_animation = "Attack"
+
+		State.DEAD:
+			return
+
+	if target_animation != current_animation:
+		current_animation = target_animation
+		animation_state.travel(target_animation)
+
+	# Match running animation speed to actual movement speed.
+	if state == State.CHASING:
+
+		var current_speed := Vector2(
+			velocity.x,
+			velocity.z
+		).length()
+
+		var speed_ratio := current_speed / move_speed
+
+		speed_ratio = clamp(
+			speed_ratio,
+			0.5,
+			1.5
+		)
+
+		animation_tree.set(
+			"parameters/Run/TimeScale/scale",
+			run_animation_base_speed * speed_ratio
+		)
 # ============================================================
 # IDLE
 # ============================================================
@@ -241,8 +295,6 @@ func handle_chasing(delta: float) -> void:
 	if recovery_timer > 0.0:
 
 		recovery_timer -= delta
-
-		stop_horizontal(delta)
 
 		return
 
@@ -536,6 +588,7 @@ func perform_attack() -> void:
 	if player == null:
 		return
 
+	animation_state.travel("Attack")
 
 	print("Enemy attacks player!")
 
@@ -547,7 +600,6 @@ func perform_attack() -> void:
 			false
 		) as Damageable
 	)
-
 
 	if player_damageable == null:
 
@@ -576,7 +628,6 @@ func perform_attack() -> void:
 		player.global_position,
 		attack_direction
 	)
-
 
 # ============================================================
 # STOP
@@ -611,3 +662,4 @@ func _on_died() -> void:
 	navigation_path.clear()
 
 	print("Enemy died")
+	queue_free()
