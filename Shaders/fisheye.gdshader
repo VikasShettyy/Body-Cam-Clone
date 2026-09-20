@@ -87,6 +87,16 @@ uniform float aspect_ratio = 1.7777778;
 
 
 // ============================================================
+// MOTION BLUR
+// ============================================================
+
+uniform float motion_blur_strength :
+	hint_range(0.0, 0.10, 0.001) = 0.0;
+
+uniform vec2 motion_blur_direction = vec2(0.0);
+
+
+// ============================================================
 // PANINI PROJECTION
 // ============================================================
 
@@ -192,6 +202,108 @@ float calculate_vignette(vec2 uv)
 	return 1.0 -
 		vignette *
 		vignette_strength;
+}
+
+
+// ============================================================
+// MOTION BLUR
+// 5 TOTAL SCREEN SAMPLES
+// ============================================================
+
+vec3 apply_motion_blur(
+	vec2 uv,
+	vec3 center_color
+)
+{
+	if (motion_blur_strength <= 0.0001)
+	{
+		return center_color;
+	}
+
+	vec2 direction = motion_blur_direction;
+
+	float direction_length = length(direction);
+
+	if (direction_length <= 0.0001)
+	{
+		return center_color;
+	}
+
+	direction = normalize(direction);
+
+	vec2 blur_offset =
+		direction *
+		motion_blur_strength;
+
+
+	// --------------------------------------------------------
+	// Center sample
+	// --------------------------------------------------------
+
+	vec3 blur_color = center_color;
+
+
+	// --------------------------------------------------------
+	// Sample 1
+	// --------------------------------------------------------
+
+	blur_color += texture(
+		screen_texture,
+		clamp(
+			uv + blur_offset * 0.25,
+			vec2(0.001),
+			vec2(0.999)
+		)
+	).rgb;
+
+
+	// --------------------------------------------------------
+	// Sample 2
+	// --------------------------------------------------------
+
+	blur_color += texture(
+		screen_texture,
+		clamp(
+			uv - blur_offset * 0.25,
+			vec2(0.001),
+			vec2(0.999)
+		)
+	).rgb;
+
+
+	// --------------------------------------------------------
+	// Sample 3
+	// --------------------------------------------------------
+
+	blur_color += texture(
+		screen_texture,
+		clamp(
+			uv + blur_offset * 0.50,
+			vec2(0.001),
+			vec2(0.999)
+		)
+	).rgb;
+
+
+	// --------------------------------------------------------
+	// Sample 4
+	// --------------------------------------------------------
+
+	blur_color += texture(
+		screen_texture,
+		clamp(
+			uv - blur_offset * 0.50,
+			vec2(0.001),
+			vec2(0.999)
+		)
+	).rgb;
+
+
+	// --------------------------------------------------------
+	// Average all 5 samples
+	// --------------------------------------------------------
+
+	return blur_color * 0.2;
 }
 
 
@@ -307,6 +419,16 @@ void fragment()
 		).b;
 
 
+	// ========================================================
+	// MOTION BLUR
+	// ========================================================
+
+	final_color =
+		apply_motion_blur(
+			distorted_uv,
+			final_color
+		);
+
 
 	// ========================================================
 	// CONTRAST
@@ -346,7 +468,8 @@ void fragment()
 	// EXPOSURE
 	// ========================================================
 
-	final_color *= exposure;
+	final_color *=
+		exposure;
 
 
 	// ========================================================

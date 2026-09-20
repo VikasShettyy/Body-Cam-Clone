@@ -1,7 +1,10 @@
-[gd_scene load_steps=23 format=3 uid="uid://ckqcwxembp6n3"]
+[gd_scene load_steps=28 format=3 uid="uid://ckqcwxembp6n3"]
 
 [ext_resource type="PackedScene" uid="uid://bxp4o7lnp7tc2" path="res://Scenes/Player/player.tscn" id="1_1srsd"]
+[ext_resource type="Texture2D" uid="uid://by0xhck0kb48j" path="res://Materials/HDRis/free_hdri_sky_791_.jpg" id="1_hoxpb"]
 [ext_resource type="Material" uid="uid://cyt0qnyhf8lys" path="res://Prototype_Textures/Dark/gray.tres" id="2_u7hpt"]
+[ext_resource type="Script" uid="uid://c8wq2iyqx6ax6" path="res://addons/lens_effects/lens_flare_compositor_effect.gd" id="2_yspxn"]
+[ext_resource type="Script" uid="uid://bgh6u2ab1bik8" path="res://addons/lens_effects/world_environment.gd" id="3_8y3w6"]
 [ext_resource type="Script" uid="uid://ceml704h6ueh6" path="res://Scripts/Camera/bodycam_exposure.gd" id="4_oidnl"]
 [ext_resource type="Shader" uid="uid://bew51f854lsn3" path="res://Shaders/fisheye.gdshader" id="4_pnj4j"]
 [ext_resource type="Script" uid="uid://ds5rwvey655q3" path="res://Scripts/Camera/bodycam_overlay.gd" id="5_oidnl"]
@@ -11,19 +14,20 @@
 [ext_resource type="PackedScene" uid="uid://dnexe6mo3f5yd" path="res://Scenes/enemy/enemy.tscn" id="8_nekki"]
 [ext_resource type="PackedScene" uid="uid://4x3lqgdx35fg" path="res://Scenes/Objects/shooting_range.tscn" id="9_w7bqs"]
 
-[sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_18ja4"]
-sky_top_color = Color(0.603957, 0.668823, 0.759212, 1)
-sky_horizon_color = Color(0.792761, 0.804351, 0.821572, 1)
-ground_bottom_color = Color(0.0959762, 0.077467, 0.0559647, 1)
-ground_horizon_color = Color(0.792761, 0.804351, 0.821572, 1)
+[sub_resource type="PanoramaSkyMaterial" id="PanoramaSkyMaterial_6slq6"]
+panorama = ExtResource("1_hoxpb")
+filter = false
+energy_multiplier = 0.8
 
 [sub_resource type="Sky" id="Sky_7vjjh"]
-sky_material = SubResource("ProceduralSkyMaterial_18ja4")
+sky_material = SubResource("PanoramaSkyMaterial_6slq6")
 
 [sub_resource type="Environment" id="Environment_u7hpt"]
 background_mode = 2
+background_color = Color(1, 1, 1, 1)
 background_energy_multiplier = 0.6
 sky = SubResource("Sky_7vjjh")
+sky_rotation = Vector3(0, -3.18348, 0)
 ambient_light_source = 3
 ambient_light_sky_contribution = 0.08
 ambient_light_energy = 0.25
@@ -31,9 +35,37 @@ reflected_light_source = 2
 tonemap_mode = 3
 glow_enabled = true
 glow_intensity = 0.38
-fog_light_color = Color(0.220038, 0.296561, 0.347543, 1)
-fog_light_energy = 7.34
+fog_mode = 1
 fog_sun_scatter = 1.0
+fog_density = 1.0
+fog_depth_begin = 0.0
+
+[sub_resource type="CompositorEffect" id="CompositorEffect_5ysoe"]
+resource_local_to_scene = false
+resource_name = ""
+enabled = true
+effect_callback_type = 4
+needs_motion_vectors = false
+needs_normal_roughness = false
+script = ExtResource("2_yspxn")
+ShaderPath = "res://addons/lens_effects/lens_flares.glsl"
+sun_color = Color(0.388235, 0.341176, 0.156863, 1)
+Effect_Multiplier = 3.593
+Effect_Easing = 0.576
+Anamorphic_Threshold = 0.5
+Anamorphic_Intensity = 400.0
+Anamorphic_Stretch = 0.44
+Anamorphic_Brightness = 0.574
+Decay = 0.99
+Density = 0.99
+Weight = 0.137
+SampleCount = 64
+print_buffer_resize = false
+print_freed_rids = false
+metadata/_custom_type_script = "uid://c8wq2iyqx6ax6"
+
+[sub_resource type="Compositor" id="Compositor_q72rw"]
+compositor_effects = Array[CompositorEffect]([SubResource("CompositorEffect_5ysoe")])
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_oidnl"]
 shader = ExtResource("4_pnj4j")
@@ -52,6 +84,8 @@ shader_parameter/vignette_strength = 1.0
 shader_parameter/vignette_radius = 0.87
 shader_parameter/vignette_softness = 0.12
 shader_parameter/aspect_ratio = 1.77778
+shader_parameter/motion_blur_strength = 0.0
+shader_parameter/motion_blur_direction = Vector2(0, 0)
 
 [sub_resource type="NavigationMesh" id="NavigationMesh_w7bqs"]
 vertices = PackedVector3Array(-6.25, 0.909791, -18.25, 2.25, 0.909791, -18.25, 2.25, 0.909791, -22, 4, 0.909791, -22.25, 3.75, 0.909791, -49.5, -49.5, 0.909791, -49.5, -49.5, 0.909791, -18.5, 13, 0.909791, -22.25, 13.25, 0.909791, -49.5, 14.75, 0.909791, -22, 14.75, 0.909791, -18, 15.25, 0.909791, -18, 21.25, 0.909791, -18.25, 49.5, 0.909791, -15.75, 49.5, 0.909791, -49.5, 21.5, 0.909791, -15.75, 21.75, 6.90979, -27.25, 21.75, 6.90979, -19, 30.25, 7.15979, -19, 30.25, 7.15979, -27.25, 3.25, 14.6598, -21.25, 3.25, 14.6598, -14.25, 9, 14.6598, -14.25, 9, 14.6598, -21.25, 10.75, 20.1598, -21.25, 10.75, 20.1598, -14.25, 13.75, 20.1598, -14.25, 13.75, 20.1598, -21.25, 3.5, 1.15979, -21, 3.5, 1.15979, -14.5, 8.75, 1.15979, -14.5, 8.75, 1.15979, -21, 11, 1.15979, -21, 11, 1.15979, -14.5, 13.5, 1.15979, -14.5, 13.5, 1.15979, -21, -6.75, 0.909791, -18, -49.5, 0.909791, -15, -6.25, 0.909791, -15.25, 16.75, 0.909791, -13, 17, 0.909791, -13.25, 15.25, 0.909791, -13.5, 14.5, 0.909791, -13.25, 13.25, 1.15979, -12, 13.25, 0.909791, -13, 4.25, 0.909791, -13.25, 13.25, 1.15979, -3.5, 15, 2.15979, -3.75, 5.75, 0.909791, -5.75, 4, 0.909791, -6, 5.5, 0.909791, -4.25, 15, 2.15979, -12, 21.75, 3.40979, -12.25, 20, 3.40979, -12, 20.25, 3.40979, -3.75, 29.75, 6.90979, -17.75, 21.75, 6.90979, -17.75, 30.25, 3.65979, -3.75, 29.95, 3.65979, -12.15, 28.01, 4.40979, -14.014, -5.5, 3.40979, -17.25, -5.25, 3.15979, -16, -4.75, 3.40979, -17, 16.25, 12.4098, -17.25, 16.25, 12.4098, -14.25, 20.5, 12.4098, -14.25, 20.5, 12.4098, -17.25, 16.5, 0.909791, -17, 16.5, 0.909791, -14.5, 20.25, 0.909791, -14.5, 20.25, 0.909791, -17, -2, 0.909791, -16.25, -2, 0.909791, -15, 0.5, 0.909791, -15, 0.5, 0.909791, -16.25, 21.25, 0.909791, -13.25, 17, 0.909791, -3, 15, 0.909791, -2.75, 15, 0.909791, 49.5, 49.5, 0.909791, 49.5, -2.75, 3.40979, -14, -3, 3.15979, -15.5, -3.5, 3.40979, -14, 1.5, 3.40979, -13.75, 1.5, 3.40979, -14.25, -5, 3.40979, -14, -6, 0.909791, -13, -5.75, 0.909791, -15, -5.5, 0.909791, -5.75, -5.5, 0.909791, -12.75, -5.5, 0.909791, -5, -49.5, 0.909791, -5, 2.5, 0.909791, -13.25, 2.25, 0.909791, -12.75, 17.625, 3.40979, -3.75, 17.5, 3.40979, -12, 15.9951, 2.90979, -4.99315, 17.4802, 3.40979, -4.98217, -5.25, 0.909791, -4.25, -49.5, 0.909791, 49.5, -4, 0.909791, 49.5, -3.75, 0.909791, -4.25, 4.25, 0.909791, 49.5, 4, 0.909791, -4.25, 13.25, 0.909791, -2.75)
@@ -83,19 +117,19 @@ albedo_texture = ExtResource("8_2ound")
 
 [node name="Test_world" type="Node3D"]
 
-[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+[node name="WorldEnvironment" type="WorldEnvironment" parent="." node_paths=PackedStringArray("sun")]
 environment = SubResource("Environment_u7hpt")
+compositor = SubResource("Compositor_q72rw")
+script = ExtResource("3_8y3w6")
+sun = NodePath("../DirectionalLight3D")
 
 [node name="DirectionalLight3D" type="DirectionalLight3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, -0.356721, 0.934211, 0, -0.934211, -0.356722, -0.0136776, 0.472759, 4.76837e-07)
-light_energy = 0.85
+transform = Transform3D(1, 0, 0, 0, -0.600461, 0.799653, 0, -0.799653, -0.600463, -0.0136776, 0.472759, 4.76837e-07)
+light_color = Color(0.764706, 0.811765, 0.819608, 1)
 shadow_enabled = true
 shadow_bias = 0.02
 shadow_normal_bias = 0.5
 directional_shadow_mode = 0
-
-[node name="SunMarker" type="Marker3D" parent="DirectionalLight3D"]
-transform = Transform3D(1, -2.23517e-08, -7.45058e-09, 3.72529e-08, 1, -2.98023e-08, 0, 0, 1, -0.944765, 3.07101, 1.2906)
 
 [node name="CharacterBody3D" parent="." node_paths=PackedStringArray("ammo_label") instance=ExtResource("1_1srsd")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.71926, 0)
@@ -103,6 +137,8 @@ ammo_label = NodePath("../Bodycam/UI/Overlay/AmmoLabel")
 weapon_sway_amount = 0.05
 weapon_sway_speed = 10.0
 fire_rate = 10.0
+walk_bob_amount = 0.06
+sprint_bob_frequency = 16.0
 landing_shake_strength = 1.0
 landing_shake_rotation = 0.03
 jump_landing_multiplier = 0.25
@@ -351,3 +387,12 @@ transform = Transform3D(-4.37114e-08, 0, -1, 0, 1, 0, 1, 0, -4.37114e-08, -14.79
 
 [node name="ShootingRange3" parent="Shooting_Range" instance=ExtResource("9_w7bqs")]
 transform = Transform3D(-4.37114e-08, 0, -1, 0, 1, 0, 1, 0, -4.37114e-08, -16.796, 0.282796, 23.879)
+
+[node name="CharacterBody3D3" parent="." instance=ExtResource("8_nekki")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.56852, 1.5, 31.7905)
+
+[node name="CharacterBody3D4" parent="." instance=ExtResource("8_nekki")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -30.2875, 1.5, -0.82048)
+
+[node name="CharacterBody3D5" parent="." instance=ExtResource("8_nekki")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 30.2198, 1.5, 15.4156)
