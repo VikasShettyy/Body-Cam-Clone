@@ -97,6 +97,8 @@ var weapon_idle_time := 0.0
 
 var weapon_bob_time := 0.0
 
+var current_weapon_bob_x := 0.0
+
 
 # ============================================================
 # MOVEMENT
@@ -130,14 +132,15 @@ var weapon_bob_time := 0.0
 
 @export_category("Bodycam Movement")
 
-@export var walk_bob_amount := 0.035
-@export var walk_sway_amount := 0.025
-@export var walk_bob_frequency := 8.0
-@export var sprint_bob_frequency := 10.0
-@export var camera_motion_smoothness := 10.0
-@export var camera_roll_amount := 0.025
-@export var camera_forward_amount := 0.015
-
+@export var walk_bob_amount := 0.060
+@export var walk_sway_amount := 0.045
+@export var walk_bob_frequency := 9.0
+@export var sprint_bob_frequency := 13.0
+@export var camera_motion_smoothness := 12.0
+@export var camera_walk_tilt := 0.035
+@export var camera_run_tilt := 0.065
+@export var camera_tilt_smoothness := 10.0
+@export var camera_forward_amount := 0.030
 
 # ============================================================
 # CAMERA INERTIA
@@ -159,9 +162,23 @@ var camera_yaw_offset := 0.0
 
 @export_category("Camera Shake")
 
-@export var landing_shake_strength := 0.035
-@export var landing_shake_rotation := 0.025
-@export var shake_recovery_speed := 12.0
+@export var landing_shake_strength := 0.025
+@export var landing_shake_rotation := 0.018
+
+# Normal jump landing
+@export var jump_landing_multiplier := 0.35
+
+# Strength of falling impact
+@export var fall_shake_multiplier := 1.0
+
+# How quickly the shake recovers
+@export var shake_recovery_speed := 10.0
+
+# Minimum downward velocity considered a fall
+@export var fall_velocity_threshold := 5.0
+
+# Maximum impact strength
+@export var max_landing_impact := 2.5
 
 var shake_position := Vector3.ZERO
 var shake_rotation := Vector3.ZERO
@@ -431,6 +448,9 @@ func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("reload"):
 		reload_weapon()
 	
+	if event.is_action_pressed("inspect"):
+		weapon_animation.play("INSPEC")
+		await weapon_animation.animation_finished
 	
 	
 # ============================================================
@@ -445,15 +465,22 @@ func _physics_process(delta: float) -> void:
 
 	move_and_slide()
 
+
+	# Weapon bob is the master movement cycle.
+	handle_weapon_sway(delta)
+
+
+	# Camera reads the weapon bob.
 	handle_bodycam_motion(delta)
-	
+
+
+	# Footsteps read the same weapon bob.
 	handle_footsteps()
-	
+
+
 	handle_camera_inertia(delta)
 
 	handle_camera_shake(delta)
-
-	handle_weapon_sway(delta)
 
 	handle_weapon_fire(delta)
 
@@ -579,11 +606,9 @@ func handle_bodycam_motion(delta: float) -> void:
 
 	var movement_speed: float = horizontal_velocity.length()
 
-
 	var is_moving: bool = (
 		movement_speed > 0.15
 	)
-
 
 	var is_sprinting: bool = (
 		Input.is_action_pressed("sprint")
@@ -591,39 +616,31 @@ func handle_bodycam_motion(delta: float) -> void:
 	)
 
 
-	# --------------------------------------------------------
-	# Walking / sprinting bob
-	# --------------------------------------------------------
+	# ========================================================
+	# BOB FREQUENCY
+	# ========================================================
 
 	if is_moving and is_on_floor():
 
-		var bob_frequency: float = (
-			walk_bob_frequency
-		)
+		var bob_frequency: float = walk_bob_frequency
 
 		if is_sprinting:
+			bob_frequency = sprint_bob_frequency
 
-			bob_frequency = (
-				sprint_bob_frequency
-			)
-
-		camera_bob_time += (
-			delta *
-			bob_frequency
-		)
+		camera_bob_time += delta * bob_frequency
 
 	else:
 
 		camera_bob_time = move_toward(
 			camera_bob_time,
 			0.0,
-			delta * 5.0
+			delta * 6.0
 		)
 
 
-	# --------------------------------------------------------
-	# Movement intensity
-	# --------------------------------------------------------
+	# ========================================================
+	# MOVEMENT INTENSITY
+	# ========================================================
 
 	var speed_factor: float = clamp(
 		movement_speed / sprint_speed,
@@ -631,10 +648,17 @@ func handle_bodycam_motion(delta: float) -> void:
 		1.0
 	)
 
+	# Make sprinting noticeably stronger.
+	if is_sprinting:
+		speed_factor = min(
+			speed_factor * 1.25,
+			1.35
+		)
 
-	# --------------------------------------------------------
-	# Vertical bob
-	# --------------------------------------------------------
+
+	# ========================================================
+	# VERTICAL BOB
+	# ========================================================
 
 	var bob_y: float = (
 		sin(camera_bob_time)
@@ -643,9 +667,9 @@ func handle_bodycam_motion(delta: float) -> void:
 	)
 
 
-	# --------------------------------------------------------
-	# Side-to-side sway
-	# --------------------------------------------------------
+	# ========================================================
+	# SIDE-TO-SIDE BODY SWAY
+	# ========================================================
 
 	var bob_x: float = (
 		cos(camera_bob_time * 0.5)
@@ -654,20 +678,35 @@ func handle_bodycam_motion(delta: float) -> void:
 	)
 
 
-	# --------------------------------------------------------
-	# Forward / backward movement
-	# --------------------------------------------------------
+	# ========================================================
+	# FORWARD / BACKWARD BODY MOVEMENT
+	# ========================================================
 
 	var bob_z: float = (
-		sin(camera_bob_time * 0.5)
+		sin(camera_bob_time)
 		* camera_forward_amount
 		* speed_factor
 	)
 
 
-	# --------------------------------------------------------
-	# Target camera position
-	# --------------------------------------------------------
+	# ========================================================
+	# SMALL SECONDARY MOVEMENT
+	# ========================================================
+
+	var secondary_y: float = (
+		cos(camera_bob_time * 2.0)
+		* walk_bob_amount
+		* 0.20
+		* speed_factor
+	)
+
+
+	bob_y += secondary_y
+
+
+	# ========================================================
+	# TARGET CAMERA POSITION
+	# ========================================================
 
 	var target_position: Vector3 = (
 		camera_base_position
@@ -679,9 +718,9 @@ func handle_bodycam_motion(delta: float) -> void:
 	)
 
 
-	# --------------------------------------------------------
-	# Smooth camera position
-	# --------------------------------------------------------
+	# ========================================================
+	# SMOOTH CAMERA POSITION
+	# ========================================================
 
 	var position_smoothing: float = (
 		1.0
@@ -691,6 +730,7 @@ func handle_bodycam_motion(delta: float) -> void:
 		)
 	)
 
+
 	camera_pivot.position = (
 		camera_pivot.position.lerp(
 			target_position,
@@ -699,24 +739,54 @@ func handle_bodycam_motion(delta: float) -> void:
 	)
 
 
-	# --------------------------------------------------------
-	# Bodycam roll
-	# --------------------------------------------------------
+	# ========================================================
+	# CAMERA TILT - EXACTLY SYNCED WITH WEAPON BOB
+	# ========================================================
 
-	var target_roll: float = (
-		-bob_x
-		* camera_roll_amount
-		* 10.0
+	var tilt_amount: float = camera_walk_tilt
+
+	if is_sprinting:
+		tilt_amount = camera_run_tilt
+
+
+	var target_tilt: float = 0.0
+
+
+	if is_moving and is_on_floor():
+
+		# Weapon movement uses:
+		# movement_bob.x = cos(weapon_bob_time) * bob_amount
+		#
+		# Therefore the camera uses the exact same phase.
+
+		if is_sprinting:
+			target_tilt = (
+				-current_weapon_bob_x
+				/ weapon_sprint_bob_amount
+				* camera_run_tilt
+			)
+		else:
+			target_tilt = (
+				-current_weapon_bob_x
+				/ weapon_bob_amount
+				* camera_walk_tilt
+			)
+
+
+	# Smooth the tilt without changing its timing.
+	var tilt_smoothing: float = (
+		1.0
+		- exp(
+			-camera_tilt_smoothness * delta
+		)
 	)
 
 
 	camera_pivot.rotation.z = lerp(
 		camera_pivot.rotation.z,
-		target_roll,
-		position_smoothing
+		target_tilt,
+		tilt_smoothing
 	)
-
-
 # ============================================================
 # CAMERA INERTIA
 # ============================================================
@@ -785,9 +855,9 @@ func handle_camera_inertia(delta: float) -> void:
 
 func handle_camera_shake(delta: float) -> void:
 
-	# --------------------------------------------------------
-	# Detect landing
-	# --------------------------------------------------------
+	# ========================================================
+	# DETECT LANDING
+	# ========================================================
 
 	var just_landed: bool = (
 		is_on_floor()
@@ -796,24 +866,72 @@ func handle_camera_shake(delta: float) -> void:
 	)
 
 
-	# --------------------------------------------------------
-	# Landing impact
-	# --------------------------------------------------------
+	# ========================================================
+	# LANDING IMPACT
+	# ========================================================
 
 	if just_landed:
 
-		var impact_strength: float = clamp(
-			abs(previous_vertical_velocity) / 10.0,
-			0.0,
-			1.0
+		var fall_velocity: float = abs(
+			previous_vertical_velocity
 		)
 
+
+		# ----------------------------------------------------
+		# Determine whether this was a jump or a real fall
+		# ----------------------------------------------------
+
+		var impact_strength: float
+
+
+		if fall_velocity < fall_velocity_threshold:
+
+			# Normal jump.
+			# Keep the camera shake small.
+
+			impact_strength = (
+				jump_landing_multiplier
+			)
+
+		else:
+
+			# Falling from a height.
+			# Increase shake based on falling velocity.
+
+			impact_strength = (
+				fall_velocity /
+				10.0
+			)
+
+			impact_strength *= (
+				fall_shake_multiplier
+			)
+
+
+		# ----------------------------------------------------
+		# Clamp maximum shake
+		# ----------------------------------------------------
+
+		impact_strength = clamp(
+			impact_strength,
+			0.0,
+			max_landing_impact
+		)
+
+
+		# ----------------------------------------------------
+		# Vertical camera impact
+		# ----------------------------------------------------
 
 		shake_position.y -= (
 			landing_shake_strength *
 			impact_strength
 		)
 
+
+		# ----------------------------------------------------
+		# Forward camera kick
+		# ----------------------------------------------------
 
 		shake_position.z += (
 			landing_shake_strength *
@@ -822,15 +940,30 @@ func handle_camera_shake(delta: float) -> void:
 		)
 
 
+		# ----------------------------------------------------
+		# Camera rotation impact
+		# ----------------------------------------------------
+
 		shake_rotation.x += (
 			landing_shake_rotation *
 			impact_strength
 		)
 
 
-	# --------------------------------------------------------
-	# Recovery
-	# --------------------------------------------------------
+		# Slight random roll for heavier impacts
+		shake_rotation.z += (
+			randf_range(
+				-landing_shake_rotation,
+				landing_shake_rotation
+			)
+			* 0.35
+			* impact_strength
+		)
+
+
+	# ========================================================
+	# SHAKE RECOVERY
+	# ========================================================
 
 	var recovery_amount: float = (
 		1.0
@@ -857,31 +990,28 @@ func handle_camera_shake(delta: float) -> void:
 	)
 
 
-	# --------------------------------------------------------
-	# Apply position shake
-	# --------------------------------------------------------
+	# ========================================================
+	# APPLY POSITION SHAKE
+	# ========================================================
 
 	camera.position = shake_position
 
 
-	# --------------------------------------------------------
-	# Apply rotation shake
-	# --------------------------------------------------------
+	# ========================================================
+	# APPLY ROTATION SHAKE
+	# ========================================================
 
 	camera.rotation.x = shake_rotation.x
 	camera.rotation.y = shake_rotation.y
 	camera.rotation.z = shake_rotation.z
 
 
-	# --------------------------------------------------------
-	# Store state
-	# --------------------------------------------------------
+	# ========================================================
+	# STORE PREVIOUS STATE
+	# ========================================================
 
 	previous_vertical_velocity = velocity.y
-
 	was_on_floor = is_on_floor()
-
-
 # ============================================================
 # WEAPON SWAY + RECOIL + BOB
 # ============================================================
@@ -1004,7 +1134,8 @@ func handle_weapon_sway(delta: float) -> void:
 			* bob_amount
 		)
 
-
+		current_weapon_bob_x = movement_bob.x
+		
 		movement_bob.y = (
 			abs(
 				sin(weapon_bob_time)
@@ -1163,7 +1294,7 @@ func handle_weapon_fire(delta: float) -> void:
 		if not empty_click_played:
 			if empty_click_sound != null:
 				empty_click_sound.play()
-
+				
 			empty_click_played = true
 
 		return
@@ -1515,6 +1646,7 @@ func handle_weapon_ads(delta: float) -> void:
 	)
 
 func handle_footsteps() -> void:
+
 	var horizontal_velocity: Vector3 = Vector3(
 		velocity.x,
 		0.0,
@@ -1523,19 +1655,70 @@ func handle_footsteps() -> void:
 
 	var movement_speed: float = horizontal_velocity.length()
 
+
+	# ========================================================
+	# NOT WALKING / NOT RUNNING
+	# ========================================================
+
 	if not is_on_floor() or movement_speed < footstep_min_speed:
+
 		last_footstep_phase = 0.0
+
 		return
 
-	var current_phase: float = sin(camera_bob_time)
 
-	# Detect the downward part of the bob cycle.
-	if last_footstep_phase > 0.0 and current_phase <= 0.0:
+	# ========================================================
+	# USE THE EXACT SAME PHASE AS THE WEAPON BOB
+	# ========================================================
+
+	var current_phase: float = sin(
+		weapon_bob_time
+	)
+
+
+	# ========================================================
+	# DETECT WHEN WEAPON BOB REACHES THE BOTTOM
+	# ========================================================
+	#
+	# Weapon Y movement:
+	#
+	# abs(sin(weapon_bob_time))
+	#
+	# The bottom occurs every time the sine crosses zero.
+	#
+	#       /\        /\
+	#      /  \      /  \
+	# ----/----\----/----\----
+	#       ↑        ↑
+	#    FOOTSTEP  FOOTSTEP
+	#
+	# ========================================================
+
+	var crossed_zero: bool = (
+		(
+			last_footstep_phase < 0.0
+			and current_phase >= 0.0
+		)
+		or
+		(
+			last_footstep_phase > 0.0
+			and current_phase <= 0.0
+		)
+	)
+
+
+	if crossed_zero:
+
 		play_footstep()
 
-	last_footstep_phase = current_phase
-	
+
+	# ========================================================
+	# STORE CURRENT PHASE
+	# ========================================================
+
+	last_footstep_phase = current_phase		
 func play_footstep() -> void:
+
 	if footstep_sound == null:
 		return
 
@@ -1545,7 +1728,7 @@ func play_footstep() -> void:
 	)
 
 	footstep_sound.play()
-
+	
 func handle_surface_impact(
 	hit_object: Object,
 	hit_position: Vector3,

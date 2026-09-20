@@ -4,7 +4,7 @@
 [ext_resource type="PackedScene" uid="uid://c0x4d1wrexyj" path="res://Scenes/Player/weapon.tscn" id="2_a3d8c"]
 [ext_resource type="PackedScene" uid="uid://cbedmvvwfv8n8" path="res://Scenes/Player/ShellCasing.tscn" id="2_xpcdj"]
 [ext_resource type="PackedScene" uid="uid://dlbllbk2klx31" path="res://Scenes/Player/BulletImpact.tscn" id="3_mtuoh"]
-[ext_resource type="AudioStream" uid="uid://dbhuofwefbrcj" path="res://Assets/SFX/Player/footsteps.mp3" id="5_htcer"]
+[ext_resource type="AudioStream" uid="uid://08ey60p7ulkt" path="res://Assets/SFX/Player/footsteps_player.mp3" id="5_dd0ac"]
 [ext_resource type="Script" uid="uid://0fswi71mer7s" path="res://Scripts/Systems/damageable.gd" id="6_dd0ac"]
 
 [sub_resource type="CapsuleShape3D" id="CapsuleShape3D_tugb3"]
@@ -47,8 +47,9 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.0396502, -0.105, -0.15)
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.0657358, 0.099947, -0.0757533)
 
 [node name="FootstepSound" type="AudioStreamPlayer3D" parent="."]
-stream = ExtResource("5_htcer")
-volume_db = -8.238
+stream = ExtResource("5_dd0ac")
+volume_db = -32.0
+pitch_scale = 1.76
 max_distance = 15.0
 
 [node name="Damageable" type="Node" parent="."]
