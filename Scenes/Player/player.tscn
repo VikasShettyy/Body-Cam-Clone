@@ -17,13 +17,14 @@ fire_rate = 12.0
 weapon_idle_amount = 0.001
 weapon_tactical_lean_amount = 0.2
 walk_bob_amount = 0.05
-tactical_lean_amount = 0.2
 camera_yaw_inertia = 0.004
 camera_recoil_amount = 0.09
 camera_recoil_side_amount = 0.05
 shell_scene = ExtResource("2_xpcdj")
+shell_upward_force = 0.5
 bullet_impact_scene = ExtResource("3_mtuoh")
 reserve_ammo = 300
+ads_bob_multiplier = 0.35
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="."]
 shape = SubResource("CapsuleShape3D_tugb3")
@@ -37,16 +38,17 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0)
 
 [node name="Camera3D" type="Camera3D" parent="CameraPivot"]
 fov = 80.0
+near = 0.03
 
 [node name="WeaponHolder" type="Node3D" parent="CameraPivot/Camera3D"]
 
 [node name="WeaponADS" type="Node3D" parent="CameraPivot/Camera3D/WeaponHolder"]
 
 [node name="Weapon" parent="CameraPivot/Camera3D/WeaponHolder/WeaponADS" instance=ExtResource("2_a3d8c")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.0396502, -0.105, -0.15)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.055, -0.205, -0.15)
 
 [node name="ADSPoint" type="Marker3D" parent="CameraPivot/Camera3D/WeaponHolder/WeaponADS/Weapon"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.0657358, 0.099947, -0.0757533)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.0678961, 0.0853377, -0.161533)
 
 [node name="FootstepSound" type="AudioStreamPlayer3D" parent="."]
 stream = ExtResource("5_dd0ac")

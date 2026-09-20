@@ -297,6 +297,24 @@ var ads_point_local_transform := Transform3D.IDENTITY
 	$CameraPivot/Camera3D/WeaponHolder/WeaponADS/Weapon/ADSPoint
 )
 
+# ============================================================
+# ADS WEAPON STABILITY
+# ============================================================
+
+@export_category("ADS Weapon Stability")
+
+@export_range(0.0, 1.0)
+var ads_bob_multiplier := 0.25
+
+@export_range(0.0, 1.0)
+var ads_idle_multiplier := 0.15
+
+@export var ads_running_forward_offset := 0.08
+
+@export var ads_stability_smoothness := 10.0
+
+var current_ads_forward_offset := 0.0
+
 #PLAYER AUDIO
 @export_category("Footsteps")
 @onready var footstep_sound: AudioStreamPlayer3D = $FootstepSound
@@ -1167,35 +1185,32 @@ func handle_weapon_sway(delta: float) -> void:
 	)
 
 
-	# ========================================================
-	# MOVEMENT BOB
-	# ========================================================
+# ========================================================
+# MOVEMENT BOB
+# ========================================================
 
 	var movement_bob := Vector3.ZERO
-
 
 	if is_moving and is_on_floor():
 
 		var bob_speed: float = weapon_bob_speed
 		var bob_amount: float = weapon_bob_amount
 
-
 		if is_sprinting:
+			bob_speed = weapon_sprint_bob_speed
+			bob_amount = weapon_sprint_bob_amount
 
-			bob_speed = (
-				weapon_sprint_bob_speed
-			)
+		# ----------------------------------------------------
+		# ADS STABILITY
+		# ----------------------------------------------------
 
-			bob_amount = (
-				weapon_sprint_bob_amount
-			)
-
+		if is_aiming and not is_reloading:
+			bob_amount *= ads_bob_multiplier
 
 		weapon_bob_time += (
 			delta *
 			bob_speed
 		)
-
 
 		movement_bob.x = (
 			cos(weapon_bob_time)
@@ -1203,7 +1218,7 @@ func handle_weapon_sway(delta: float) -> void:
 		)
 
 		current_weapon_bob_x = movement_bob.x
-		
+
 		movement_bob.y = (
 			abs(
 				sin(weapon_bob_time)
@@ -1211,13 +1226,11 @@ func handle_weapon_sway(delta: float) -> void:
 			* bob_amount
 		)
 
-
 		movement_bob.z = (
 			sin(weapon_bob_time * 0.5)
 			* bob_amount
 			* 0.5
 		)
-
 
 	else:
 
@@ -1226,7 +1239,6 @@ func handle_weapon_sway(delta: float) -> void:
 			0.0,
 			delta * 5.0
 		)
-
 
 	# ========================================================
 	# IDLE / BREATHING
@@ -1248,16 +1260,21 @@ func handle_weapon_sway(delta: float) -> void:
 		)
 
 
+	var idle_amount := weapon_idle_amount
+
+	if is_aiming and not is_reloading:
+		idle_amount *= ads_idle_multiplier
+	
 	var idle_position := Vector3(
 		sin(weapon_idle_time)
-		* weapon_idle_amount,
+		* idle_amount,
 
 		cos(weapon_idle_time * 0.5)
-		* weapon_idle_amount
+		* idle_amount
 		* 0.6,
 
 		sin(weapon_idle_time * 0.5)
-		* weapon_idle_amount
+		* idle_amount
 		* 0.4
 	)
 
@@ -1669,9 +1686,16 @@ func spawn_bullet_impact(
 		hit_position + hit_normal * 0.005
 	)
 
+	var look_direction: Vector3 = -hit_normal
+	var up_direction: Vector3 = Vector3.UP
+
+	# Prevent looking_at() from receiving parallel vectors.
+	if abs(look_direction.dot(up_direction)) > 0.98:
+		up_direction = Vector3.FORWARD
+
 	impact.global_basis = Basis.looking_at(
-		-hit_normal,
-		Vector3.UP
+		look_direction,
+		up_direction
 	)
 
 	# Attach the bullet hole to the object that was hit.
@@ -1696,7 +1720,7 @@ func reload_weapon() -> void:
 	is_firing = false
 	fire_timer = 0.0
 
-	weapon_animation.play("RELOAD1")
+	weapon_animation.play("RELOAD2")
 
 	await get_tree().create_timer(
 		reload_sound_delay
@@ -1727,13 +1751,20 @@ func update_ammo_ui() -> void:
 	]
 
 func handle_weapon_ads(delta: float) -> void:
+
 	var target_transform: Transform3D = (
 		weapon_ads_base_transform
 	)
 
 	var target_fov: float = default_camera_fov
 
+
+	# ========================================================
+	# ADS
+	# ========================================================
+
 	if is_aiming and not is_reloading:
+
 		var desired_ads_transform := Transform3D(
 			Basis.IDENTITY,
 			Vector3(
@@ -1744,15 +1775,65 @@ func handle_weapon_ads(delta: float) -> void:
 		)
 
 		target_transform = (
-			desired_ads_transform *
-			ads_point_local_transform.affine_inverse()
+			desired_ads_transform
+			* ads_point_local_transform.affine_inverse()
 		)
 
 		target_fov = ads_fov
 
+
+	# ========================================================
+	# ADS RUNNING CLIP PROTECTION
+	# ========================================================
+
+	var horizontal_velocity := Vector3(
+		velocity.x,
+		0.0,
+		velocity.z
+	)
+
+	var movement_speed := horizontal_velocity.length()
+
+	var is_sprinting := (
+		Input.is_action_pressed("sprint")
+		and movement_speed > 0.15
+	)
+
+	var target_forward_offset := 0.0
+
+	if is_aiming and is_sprinting and not is_reloading:
+		target_forward_offset = ads_running_forward_offset
+
+
+	var offset_smoothing := (
+		1.0
+		- exp(
+			-ads_stability_smoothness * delta
+		)
+	)
+
+	current_ads_forward_offset = lerp(
+		current_ads_forward_offset,
+		target_forward_offset,
+		offset_smoothing
+	)
+
+
+	# Move WeaponADS slightly forward during ADS sprint.
+	target_transform.origin.z -= (
+		current_ads_forward_offset
+	)
+
+
+	# ========================================================
+	# SMOOTH ADS
+	# ========================================================
+
 	var smoothing: float = (
 		1.0 -
-		exp(-ads_speed * delta)
+		exp(
+			-ads_speed * delta
+		)
 	)
 
 	weapon_ads.transform = (
@@ -1762,12 +1843,16 @@ func handle_weapon_ads(delta: float) -> void:
 		)
 	)
 
+
+	# ========================================================
+	# CAMERA FOV
+	# ========================================================
+
 	camera.fov = lerp(
 		camera.fov,
 		target_fov,
 		smoothing
 	)
-
 func handle_footsteps() -> void:
 
 	var horizontal_velocity: Vector3 = Vector3(

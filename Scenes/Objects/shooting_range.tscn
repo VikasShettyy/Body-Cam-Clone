@@ -1,6 +1,8 @@
-[gd_scene load_steps=8 format=3 uid="uid://4x3lqgdx35fg"]
+[gd_scene load_steps=10 format=3 uid="uid://4x3lqgdx35fg"]
 
 [ext_resource type="Script" uid="uid://0fswi71mer7s" path="res://Scripts/Systems/damageable.gd" id="1_ahmlu"]
+[ext_resource type="Script" uid="uid://uosxnmc2pxob" path="res://Scripts/Systems/surface_type.gd" id="2_giuym"]
+[ext_resource type="AudioStream" uid="uid://dmpl7m8f40d6v" path="res://Assets/SFX/Object/floraphonic-metal-whoosh-hit-10-202176.mp3" id="3_6hnjc"]
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_hi25w"]
 albedo_color = Color(0.0214346, 0.0214346, 0.0214346, 1)
@@ -25,7 +27,7 @@ height = 0.01
 height = 0.0809326
 radius = 0.580078
 
-[node name="ShootingRange" type="Node3D"]
+[node name="ShootingRange" type="StaticBody3D"]
 
 [node name="Base" type="MeshInstance3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0)
@@ -46,3 +48,13 @@ shape = SubResource("CylinderShape3D_hi25w")
 [node name="Damageable" type="Node" parent="."]
 script = ExtResource("1_ahmlu")
 metadata/_custom_type_script = "uid://0fswi71mer7s"
+
+[node name="SurfaceInfo" type="Node" parent="."]
+script = ExtResource("2_giuym")
+surface_type = 1
+metadata/_custom_type_script = "uid://uosxnmc2pxob"
+
+[node name="MetalImpactSound" type="AudioStreamPlayer3D" parent="SurfaceInfo"]
+stream = ExtResource("3_6hnjc")
+unit_size = 5.0
+max_distance = 50.0

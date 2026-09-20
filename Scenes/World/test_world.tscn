@@ -1,4 +1,4 @@
-[gd_scene load_steps=16 format=3 uid="uid://ckqcwxembp6n3"]
+[gd_scene load_steps=23 format=3 uid="uid://ckqcwxembp6n3"]
 
 [ext_resource type="PackedScene" uid="uid://bxp4o7lnp7tc2" path="res://Scenes/Player/player.tscn" id="1_1srsd"]
 [ext_resource type="Material" uid="uid://cyt0qnyhf8lys" path="res://Prototype_Textures/Dark/gray.tres" id="2_u7hpt"]
@@ -7,6 +7,7 @@
 [ext_resource type="Script" uid="uid://ds5rwvey655q3" path="res://Scripts/Camera/bodycam_overlay.gd" id="5_oidnl"]
 [ext_resource type="PackedScene" uid="uid://dhv0gmqm7gx7g" path="res://Scenes/Objects/shootable_box.tscn" id="7_2ix1y"]
 [ext_resource type="Texture2D" uid="uid://byj77ip7fx7q8" path="res://Prototype_Textures/Dark/texture_01.png" id="7_nekki"]
+[ext_resource type="Texture2D" uid="uid://cgyxnin2vpisn" path="res://Prototype_Textures/Light/texture_01.png" id="8_2ound"]
 [ext_resource type="PackedScene" uid="uid://dnexe6mo3f5yd" path="res://Scenes/enemy/enemy.tscn" id="8_nekki"]
 [ext_resource type="PackedScene" uid="uid://4x3lqgdx35fg" path="res://Scenes/Objects/shooting_range.tscn" id="9_w7bqs"]
 
@@ -59,6 +60,26 @@ polygons = [PackedInt32Array(2, 1, 0), PackedInt32Array(4, 3, 2), PackedInt32Arr
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_pnj4j"]
 albedo_texture = ExtResource("7_nekki")
 uv1_triplanar = true
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_hoxpb"]
+albedo_texture = ExtResource("8_2ound")
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_6slq6"]
+albedo_texture = ExtResource("7_nekki")
+uv1_triplanar = true
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_yspxn"]
+albedo_texture = ExtResource("8_2ound")
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_8y3w6"]
+albedo_texture = ExtResource("8_2ound")
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_5ysoe"]
+albedo_texture = ExtResource("7_nekki")
+uv1_triplanar = true
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_q72rw"]
+albedo_texture = ExtResource("8_2ound")
 
 [node name="Test_world" type="Node3D"]
 
@@ -205,6 +226,34 @@ use_collision = true
 size = Vector3(10, 5, 0.5)
 material = SubResource("StandardMaterial3D_pnj4j")
 
+[node name="CSGBox3D5" type="CSGBox3D" parent="NavigationRegion3D"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -18.8417, 1.0746, 10.1217)
+material_override = SubResource("StandardMaterial3D_hoxpb")
+use_collision = true
+size = Vector3(10.626, 1.32666, 0.5)
+material = SubResource("StandardMaterial3D_6slq6")
+
+[node name="CSGBox3D18" type="CSGBox3D" parent="NavigationRegion3D"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -18.7195, 2.41127, 26.6495)
+material_override = SubResource("StandardMaterial3D_yspxn")
+use_collision = true
+size = Vector3(10.8702, 4, 0.5)
+material = SubResource("StandardMaterial3D_6slq6")
+
+[node name="CSGBox3D16" type="CSGBox3D" parent="NavigationRegion3D"]
+transform = Transform3D(-4.37114e-08, 0, 1, 0, 1, 0, -1, 0, -4.37114e-08, -23.9044, 2.41127, 18.1495)
+material_override = SubResource("StandardMaterial3D_8y3w6")
+use_collision = true
+size = Vector3(17, 4, 0.5)
+material = SubResource("StandardMaterial3D_5ysoe")
+
+[node name="CSGBox3D17" type="CSGBox3D" parent="NavigationRegion3D"]
+transform = Transform3D(-4.37114e-08, 0, 1, 0, 1, 0, -1, 0, -4.37114e-08, -13.4634, 2.41127, 18.1495)
+material_override = SubResource("StandardMaterial3D_q72rw")
+use_collision = true
+size = Vector3(17, 4, 0.5)
+material = SubResource("StandardMaterial3D_5ysoe")
+
 [node name="CSGBox3D3" type="CSGBox3D" parent="NavigationRegion3D"]
 transform = Transform3D(1, 0, 0, 0, -4.37114e-08, 1, 0, -1, -4.37114e-08, -1.74493, 1.57097, -13.9274)
 use_collision = true
@@ -288,5 +337,17 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -12.4484, 1, -10.6733)
 
 [node name="Shooting_Range" type="Node3D" parent="."]
 
-[node name="ShootingRange" parent="." instance=ExtResource("9_w7bqs")]
-transform = Transform3D(-4.37114e-08, 0, -1, 0, 1, 0, 1, 0, -4.37114e-08, -18.796, 0.282796, 23.879)
+[node name="ShootingRange" parent="Shooting_Range" instance=ExtResource("9_w7bqs")]
+transform = Transform3D(-4.37114e-08, 0, -1, 0, 1, 0, 1, 0, -4.37114e-08, -18.796, 0.282796, 25.879)
+
+[node name="ShootingRange2" parent="Shooting_Range" instance=ExtResource("9_w7bqs")]
+transform = Transform3D(-4.37114e-08, 0, -1, 0, 1, 0, 1, 0, -4.37114e-08, -20.796, 0.282796, 23.879)
+
+[node name="ShootingRange4" parent="Shooting_Range" instance=ExtResource("9_w7bqs")]
+transform = Transform3D(-4.37114e-08, 0, -1, 0, 1, 0, 1, 0, -4.37114e-08, -22.796, 0.282796, 21.879)
+
+[node name="ShootingRange5" parent="Shooting_Range" instance=ExtResource("9_w7bqs")]
+transform = Transform3D(-4.37114e-08, 0, -1, 0, 1, 0, 1, 0, -4.37114e-08, -14.796, 0.282796, 21.879)
+
+[node name="ShootingRange3" parent="Shooting_Range" instance=ExtResource("9_w7bqs")]
+transform = Transform3D(-4.37114e-08, 0, -1, 0, 1, 0, 1, 0, -4.37114e-08, -16.796, 0.282796, 23.879)
