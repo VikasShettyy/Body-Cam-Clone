@@ -1,4 +1,4 @@
-[gd_scene load_steps=15 format=3 uid="uid://ckqcwxembp6n3"]
+[gd_scene load_steps=16 format=3 uid="uid://ckqcwxembp6n3"]
 
 [ext_resource type="PackedScene" uid="uid://bxp4o7lnp7tc2" path="res://Scenes/Player/player.tscn" id="1_1srsd"]
 [ext_resource type="Material" uid="uid://cyt0qnyhf8lys" path="res://Prototype_Textures/Dark/gray.tres" id="2_u7hpt"]
@@ -8,6 +8,7 @@
 [ext_resource type="PackedScene" uid="uid://dhv0gmqm7gx7g" path="res://Scenes/Objects/shootable_box.tscn" id="7_2ix1y"]
 [ext_resource type="Texture2D" uid="uid://byj77ip7fx7q8" path="res://Prototype_Textures/Dark/texture_01.png" id="7_nekki"]
 [ext_resource type="PackedScene" uid="uid://dnexe6mo3f5yd" path="res://Scenes/enemy/enemy.tscn" id="8_nekki"]
+[ext_resource type="PackedScene" uid="uid://4x3lqgdx35fg" path="res://Scenes/Objects/shooting_range.tscn" id="9_w7bqs"]
 
 [sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_18ja4"]
 sky_top_color = Color(0.603957, 0.668823, 0.759212, 1)
@@ -65,7 +66,7 @@ uv1_triplanar = true
 environment = SubResource("Environment_u7hpt")
 
 [node name="DirectionalLight3D" type="DirectionalLight3D" parent="."]
-transform = Transform3D(0.941181, 0.301621, -0.152324, -0.148613, 0.77435, 0.615057, 0.303466, -0.556243, 0.773629, -0.0136776, 0.472759, 4.76837e-07)
+transform = Transform3D(1, 0, 0, 0, -0.356721, 0.934211, 0, -0.934211, -0.356722, -0.0136776, 0.472759, 4.76837e-07)
 light_energy = 0.85
 shadow_enabled = true
 shadow_bias = 0.02
@@ -104,7 +105,6 @@ exposure_camera = NodePath("ExposureViewport/ExposureCamera")
 exposure_viewport = NodePath("ExposureViewport")
 
 [node name="ExposureViewport" type="SubViewport" parent="Bodycam/ColorRect"]
-scaling_3d_scale = 1.0
 size = Vector2i(32, 18)
 render_target_update_mode = 4
 
@@ -285,3 +285,8 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -9.17298, 1, -15.0044)
 
 [node name="ShootableBox6" parent="." instance=ExtResource("7_2ix1y")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -12.4484, 1, -10.6733)
+
+[node name="Shooting_Range" type="Node3D" parent="."]
+
+[node name="ShootingRange" parent="." instance=ExtResource("9_w7bqs")]
+transform = Transform3D(-4.37114e-08, 0, -1, 0, 1, 0, 1, 0, -4.37114e-08, -18.796, 0.282796, 23.879)

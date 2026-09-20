@@ -99,6 +99,13 @@ var weapon_bob_time := 0.0
 
 var current_weapon_bob_x := 0.0
 
+@export_category("Weapon Lean")
+
+@export var weapon_lean_amount := 0.035
+@export var weapon_tactical_lean_amount := 0.06
+@export var weapon_lean_smoothness := 8.0
+
+var current_weapon_lean := 0.0
 
 # ============================================================
 # MOVEMENT
@@ -142,6 +149,14 @@ var current_weapon_bob_x := 0.0
 @export var camera_tilt_smoothness := 10.0
 @export var camera_forward_amount := 0.030
 
+#LEAN MOVEMENT
+@export_category("Lean Movement")
+@export var camera_lean_amount := 0.05
+@export var camera_sprint_lean_amount := 0.09
+@export var camera_lean_smoothness := 7.0
+
+@export var tactical_lean_amount := 0.16
+@export var tactical_sprint_lean_amount := 0.12
 # ============================================================
 # CAMERA INERTIA
 # ============================================================
@@ -614,8 +629,51 @@ func handle_bodycam_motion(delta: float) -> void:
 		Input.is_action_pressed("sprint")
 		and is_moving
 	)
+# ========================================================
+# MOVEMENT LEAN
+# ========================================================
+
+	var horizontal_input := Input.get_axis(
+		"move_left",
+		"move_right"
+	)
+
+	var movement_lean_amount: float = camera_lean_amount
+
+	if is_sprinting:
+		movement_lean_amount = camera_sprint_lean_amount
 
 
+	var movement_lean: float = (
+		-horizontal_input * movement_lean_amount
+	)
+
+
+	# ========================================================
+	# TACTICAL Q / E LEAN
+	# ========================================================
+
+	var tactical_lean: float = 0.0
+
+
+	if Input.is_action_pressed("lean_left"):
+
+		tactical_lean = tactical_lean_amount
+
+
+	elif Input.is_action_pressed("lean_right"):
+
+		tactical_lean = -tactical_lean_amount
+
+
+	# ========================================================
+	# COMBINE LEANS
+	# ========================================================
+
+	var target_lean: float = (
+		movement_lean +
+		tactical_lean
+	)
 	# ========================================================
 	# BOB FREQUENCY
 	# ========================================================
@@ -782,9 +840,19 @@ func handle_bodycam_motion(delta: float) -> void:
 	)
 
 
+# ========================================================
+# COMBINE BOB TILT + MOVEMENT LEAN
+# ========================================================
+
+	var final_roll: float = (
+		target_tilt +
+		target_lean
+	)
+
+
 	camera_pivot.rotation.z = lerp(
 		camera_pivot.rotation.z,
-		target_tilt,
+		final_roll,
 		tilt_smoothing
 	)
 # ============================================================
@@ -1210,13 +1278,68 @@ func handle_weapon_sway(delta: float) -> void:
 	# FINAL ROTATION
 	# ========================================================
 
+# ========================================================
+# WEAPON LEAN
+# ========================================================
+
+	var horizontal_input := Input.get_axis(
+		"move_left",
+		"move_right"
+	)
+
+	var movement_lean := (
+		-horizontal_input * weapon_lean_amount
+	)
+
+
+	var tactical_lean := 0.0
+
+
+	if Input.is_action_pressed("lean_left"):
+
+		# Camera leans left.
+		# Weapon counter-leans right.
+		tactical_lean = weapon_tactical_lean_amount
+
+	elif Input.is_action_pressed("lean_right"):
+
+		# Camera leans right.
+		# Weapon counter-leans left.
+		tactical_lean = -weapon_tactical_lean_amount
+
+
+	var target_weapon_lean := (
+		movement_lean +
+		tactical_lean
+	)
+
+
+	var lean_smoothing := (
+		1.0
+		- exp(
+			-weapon_lean_smoothness * delta
+		)
+	)
+
+
+	current_weapon_lean = lerp(
+		current_weapon_lean,
+		target_weapon_lean,
+		lean_smoothing
+	)
+
+
+	# ========================================================
+	# FINAL ROTATION
+	# ========================================================
+
 	var target_rotation: Vector3 = (
 		weapon_base_rotation
 		+ sway_rotation
 		+ weapon_recoil_rotation
 	)
 
-
+	target_rotation.z += current_weapon_lean
 	# ========================================================
 	# SMOOTH ROTATION
 	# ========================================================

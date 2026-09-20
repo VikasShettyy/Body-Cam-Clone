@@ -8,6 +8,8 @@ transparency = 1
 albedo_color = Color(0.459316, 0.279609, 9.62615e-08, 1)
 metallic = 0.66
 roughness = 0.37
+emission = Color(0.458824, 0.278431, 0, 1)
+emission_energy_multiplier = 9.07
 
 [sub_resource type="CylinderMesh" id="CylinderMesh_a5yhx"]
 material = SubResource("StandardMaterial3D_a5yhx")

@@ -1,0 +1,48 @@
+[gd_scene load_steps=8 format=3 uid="uid://4x3lqgdx35fg"]
+
+[ext_resource type="Script" uid="uid://0fswi71mer7s" path="res://Scripts/Systems/damageable.gd" id="1_ahmlu"]
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_hi25w"]
+albedo_color = Color(0.0214346, 0.0214346, 0.0214346, 1)
+
+[sub_resource type="BoxMesh" id="BoxMesh_ahmlu"]
+material = SubResource("StandardMaterial3D_hi25w")
+size = Vector3(0.1, 2, 0.1)
+
+[sub_resource type="CylinderMesh" id="CylinderMesh_giuym"]
+height = 0.01
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_6hnjc"]
+albedo_color = Color(1, 0, 0.0470588, 1)
+
+[sub_resource type="CylinderMesh" id="CylinderMesh_xnvgi"]
+material = SubResource("StandardMaterial3D_6hnjc")
+top_radius = 0.3
+bottom_radius = 0.3
+height = 0.01
+
+[sub_resource type="CylinderShape3D" id="CylinderShape3D_hi25w"]
+height = 0.0809326
+radius = 0.580078
+
+[node name="ShootingRange" type="Node3D"]
+
+[node name="Base" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0)
+mesh = SubResource("BoxMesh_ahmlu")
+
+[node name="Circle" type="MeshInstance3D" parent="."]
+transform = Transform3D(2.98023e-08, -1, 0, 1, 2.98023e-08, 0, 0, 0, 1, -0.0756376, 2.19718, 0)
+mesh = SubResource("CylinderMesh_giuym")
+
+[node name="Circle2" type="MeshInstance3D" parent="."]
+transform = Transform3D(2.98023e-08, -1, 0, 1, 2.98023e-08, 0, 0, 0, 1, -0.0957786, 2.19718, 0)
+mesh = SubResource("CylinderMesh_xnvgi")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="."]
+transform = Transform3D(-4.37114e-08, -1, 0, 1, -4.37114e-08, 0, 0, 0, 1, -0.0722555, 2.19791, 0)
+shape = SubResource("CylinderShape3D_hi25w")
+
+[node name="Damageable" type="Node" parent="."]
+script = ExtResource("1_ahmlu")
+metadata/_custom_type_script = "uid://0fswi71mer7s"
