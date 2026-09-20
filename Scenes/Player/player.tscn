@@ -41,14 +41,14 @@ fov = 80.0
 [node name="WeaponADS" type="Node3D" parent="CameraPivot/Camera3D/WeaponHolder"]
 
 [node name="Weapon" parent="CameraPivot/Camera3D/WeaponHolder/WeaponADS" instance=ExtResource("2_a3d8c")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.105, -0.15)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.0396502, -0.105, -0.15)
 
 [node name="ADSPoint" type="Marker3D" parent="CameraPivot/Camera3D/WeaponHolder/WeaponADS/Weapon"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.0657358, 0.099947, -0.0757533)
 
 [node name="FootstepSound" type="AudioStreamPlayer3D" parent="."]
 stream = ExtResource("5_htcer")
-volume_db = -25.0
+volume_db = -8.238
 max_distance = 15.0
 
 [node name="Damageable" type="Node" parent="."]

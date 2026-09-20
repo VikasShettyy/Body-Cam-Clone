@@ -199,6 +199,10 @@ var camera_recoil := Vector2.ZERO
 	weapon.find_child("EjectionPoint", true, false)
 )
 
+@onready var muzzle_light: OmniLight3D = (
+	weapon.find_child("MuzzleLight", true, false)
+)
+
 @export_category("Shell Ejection")
 @export var shell_scene: PackedScene
 @export var shell_impulse := 1.8
@@ -323,10 +327,13 @@ func _ready() -> void:
 	update_ammo_ui()
 	
 	
-	# Make sure muzzle flash starts hidden.
+	
+# Make sure muzzle flash and muzzle light start hidden.
 	if muzzle_flash != null:
 		muzzle_flash.visible = false
 
+	if muzzle_light != null:
+		muzzle_light.visible = false
 	# Print available weapon animations.
 	print("Weapon animations:")
 	print(weapon_animation.get_animation_list())
@@ -423,8 +430,6 @@ func _unhandled_input(event: InputEvent) -> void:
 	#=====================
 	if event.is_action_pressed("reload"):
 		reload_weapon()
-		
-
 	
 	
 	
@@ -1177,23 +1182,59 @@ func handle_weapon_fire(delta: float) -> void:
 # ============================================================
 
 func shoot() -> void:
+
+	# --------------------------------------------------------
+	# Weapon animation
+	# --------------------------------------------------------
+
 	weapon_animation.play("SHOOT")
 
+
+	# --------------------------------------------------------
+	# Weapon recoil
+	# --------------------------------------------------------
+
 	weapon_recoil_position.z += recoil_amount
+
 	weapon_recoil_rotation.x -= recoil_rotation
 
+
+	# --------------------------------------------------------
+	# Camera recoil
+	# --------------------------------------------------------
+
 	camera_recoil.x += camera_recoil_amount
+
 	camera_recoil.y += randf_range(
 		-camera_recoil_side_amount,
 		camera_recoil_side_amount
 	)
 
+
+	# --------------------------------------------------------
+	# MUZZLE FLASH + LIGHT
+	# --------------------------------------------------------
+
 	if muzzle_flash != null:
 		muzzle_flash.visible = true
-		muzzle_flash_timer = muzzle_flash_duration
+
+	if muzzle_light != null:
+		muzzle_light.visible = true
+
+	muzzle_flash_timer = muzzle_flash_duration
+
+
+	# --------------------------------------------------------
+	# Gunshot
+	# --------------------------------------------------------
 
 	if gunshot_sound != null:
 		gunshot_sound.play()
+
+
+	# --------------------------------------------------------
+	# Shell + bullet
+	# --------------------------------------------------------
 
 	eject_shell()
 	fire_bullet()
@@ -1248,13 +1289,12 @@ func eject_shell() -> void:
 
 
 # ============================================================
-# MUZZLE FLASH
+# MUZZLE FLASH and Light
 # ============================================================
 
 func handle_muzzle_flash(delta: float) -> void:
 
 	if muzzle_flash_timer <= 0.0:
-
 		return
 
 
@@ -1264,8 +1304,10 @@ func handle_muzzle_flash(delta: float) -> void:
 	if muzzle_flash_timer <= 0.0:
 
 		if muzzle_flash != null:
-
 			muzzle_flash.visible = false
+
+		if muzzle_light != null:
+			muzzle_light.visible = false
 
 func fire_bullet() -> void:
 	var viewport_size := get_viewport().get_visible_rect().size

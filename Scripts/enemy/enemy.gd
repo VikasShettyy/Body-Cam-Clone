@@ -45,19 +45,26 @@ var path_index := 0
 
 var navigation_ready := false
 
+#Avoidence
+
+@export_category("Navigation Recovery")
+@export var stuck_check_time := 1.0
+@export var stuck_distance_threshold := 0.15
+@export var recovery_repath_delay := 0.3
+var stuck_timer := 0.0
+var recovery_timer := 0.0
+var last_position := Vector3.ZERO
+
 
 func _ready() -> void:
 
 	damageable.died.connect(_on_died)
 
-	# We are using NavigationServer3D directly.
-	# The NavigationAgent is kept in the scene but is not
-	# responsible for movement.
-
 	navigation_agent.avoidance_enabled = false
 
-	call_deferred("initialize_navigation")
+	last_position = global_position
 
+	call_deferred("initialize_navigation")
 
 func initialize_navigation() -> void:
 
@@ -157,6 +164,10 @@ func find_player() -> void:
 
 			repath_timer = repath_interval
 
+			stuck_timer = 0.0
+			recovery_timer = 0.0
+			last_position = global_position
+
 	else:
 
 		state = State.IDLE
@@ -178,7 +189,6 @@ func handle_idle(delta: float) -> void:
 # ============================================================
 # CHASING
 # ============================================================
-
 func handle_chasing(delta: float) -> void:
 
 	if player == null:
@@ -211,12 +221,11 @@ func handle_chasing(delta: float) -> void:
 		return
 
 
-	# --------------------------------------------------------
-	# REBUILD PATH PERIODICALLY
-	# --------------------------------------------------------
+	# --------------------------------------------------
+	# PATH REBUILD
+	# --------------------------------------------------
 
 	repath_timer += delta
-
 
 	if repath_timer >= repath_interval:
 
@@ -225,9 +234,66 @@ func handle_chasing(delta: float) -> void:
 		build_navigation_path()
 
 
-	# --------------------------------------------------------
-	# FOLLOW PATH
-	# --------------------------------------------------------
+	# --------------------------------------------------
+	# RECOVERY TIMER
+	# --------------------------------------------------
+
+	if recovery_timer > 0.0:
+
+		recovery_timer -= delta
+
+		stop_horizontal(delta)
+
+		return
+
+
+	# --------------------------------------------------
+	# CHECK IF ENEMY IS STUCK
+	# --------------------------------------------------
+
+	var moved_distance := (
+		global_position.distance_to(
+			last_position
+		)
+	)
+
+
+	if moved_distance < stuck_distance_threshold:
+
+		stuck_timer += delta
+
+	else:
+
+		stuck_timer = 0.0
+
+
+	last_position = global_position
+
+
+	# --------------------------------------------------
+	# STUCK
+	# --------------------------------------------------
+
+	if stuck_timer >= stuck_check_time:
+
+		stuck_timer = 0.0
+
+		recovery_timer = recovery_repath_delay
+
+		print(
+			"Enemy appears stuck. Rebuilding path."
+		)
+
+		build_navigation_path()
+
+		stop_horizontal(delta)
+
+		return
+
+
+	# --------------------------------------------------
+	# NO PATH
+	# --------------------------------------------------
 
 	if navigation_path.is_empty():
 
@@ -242,6 +308,10 @@ func handle_chasing(delta: float) -> void:
 
 		return
 
+
+	# --------------------------------------------------
+	# CURRENT WAYPOINT
+	# --------------------------------------------------
 
 	var waypoint := navigation_path[path_index]
 
@@ -260,9 +330,9 @@ func handle_chasing(delta: float) -> void:
 	)
 
 
-	# --------------------------------------------------------
-	# REACHED WAYPOINT
-	# --------------------------------------------------------
+	# --------------------------------------------------
+	# WAYPOINT REACHED
+	# --------------------------------------------------
 
 	if distance_to_waypoint <= waypoint_reach_distance:
 
@@ -275,12 +345,12 @@ func handle_chasing(delta: float) -> void:
 		return
 
 
-	# --------------------------------------------------------
-	# MOVE TOWARD WAYPOINT
-	# --------------------------------------------------------
-
 	direction = direction.normalized()
 
+
+	# --------------------------------------------------
+	# MOVEMENT
+	# --------------------------------------------------
 
 	velocity.x = move_toward(
 		velocity.x,
@@ -296,9 +366,9 @@ func handle_chasing(delta: float) -> void:
 	)
 
 
-	# --------------------------------------------------------
-	# ROTATE
-	# --------------------------------------------------------
+	# --------------------------------------------------
+	# ROTATION
+	# --------------------------------------------------
 
 	var target_rotation := atan2(
 		-direction.x,
@@ -311,7 +381,6 @@ func handle_chasing(delta: float) -> void:
 		target_rotation,
 		8.0 * delta
 	)
-
 
 # ============================================================
 # BUILD NAVIGATION PATH

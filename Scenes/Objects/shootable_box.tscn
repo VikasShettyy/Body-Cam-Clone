@@ -20,6 +20,8 @@ shape = SubResource("BoxShape3D_lnwbw")
 mesh = SubResource("BoxMesh_ucj13")
 
 [node name="HitSound" type="AudioStreamPlayer3D" parent="."]
+max_db = 6.0
+max_distance = 50.0
 
 [node name="Damageable" type="Node" parent="."]
 script = ExtResource("2_w68jo")
@@ -31,7 +33,8 @@ metadata/_custom_type_script = "uid://uosxnmc2pxob"
 
 [node name="MetalImpactSound" type="AudioStreamPlayer3D" parent="SurfaceType"]
 stream = ExtResource("4_rv1p7")
-max_distance = 5.0
+volume_db = 21.333
+max_distance = 50.0
 
 [node name="NavigationObstacle3D" type="NavigationObstacle3D" parent="."]
 radius = 0.6
