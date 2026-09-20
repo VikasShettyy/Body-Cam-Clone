@@ -136,6 +136,7 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.71926, 0)
 ammo_label = NodePath("../Bodycam/UI/Overlay/AmmoLabel")
 weapon_sway_amount = 0.05
 weapon_sway_speed = 10.0
+weapon_rotation_lag = 0.02
 fire_rate = 10.0
 walk_bob_amount = 0.06
 sprint_bob_frequency = 16.0

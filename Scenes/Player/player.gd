@@ -42,7 +42,10 @@ var weapon_base_position := Vector3.ZERO
 var weapon_sway_target := Vector3.ZERO
 var weapon_sway_input := Vector2.ZERO
 
+@export var weapon_rotation_lag := 0.08
+@export var weapon_rotation_lag_speed := 6.0
 
+var weapon_lag_rotation := Vector3.ZERO
 # ============================================================
 # WEAPON RECOIL
 # ============================================================
@@ -737,21 +740,14 @@ func handle_bodycam_motion(delta: float) -> void:
 	# ========================================================
 
 	var bob_y: float = (
-		sin(camera_bob_time)
+		abs(sin(camera_bob_time))
 		* walk_bob_amount
 		* speed_factor
 	)
-
-
 	# ========================================================
 	# SIDE-TO-SIDE BODY SWAY
 	# ========================================================
-
-	var bob_x: float = (
-		cos(camera_bob_time * 0.5)
-		* walk_sway_amount
-		* speed_factor
-	)
+	var bob_x: float = 0.0
 
 
 	# ========================================================
@@ -1164,7 +1160,27 @@ func handle_weapon_sway(delta: float) -> void:
 		* weapon_sway_amount
 		* 0.5
 	)
+# ========================================================
+# WEAPON ROTATION LAG
+# ========================================================
 
+	var target_lag_rotation := Vector3(
+		-weapon_sway_input.y * weapon_rotation_lag,
+		-weapon_sway_input.x * weapon_rotation_lag,
+		weapon_sway_input.x * weapon_rotation_lag * 0.5
+	)
+
+	var lag_smoothing := (
+		1.0
+		- exp(
+			-weapon_rotation_lag_speed * delta
+		)
+	)
+
+	weapon_lag_rotation = weapon_lag_rotation.lerp(
+		target_lag_rotation,
+		lag_smoothing
+	)
 
 	sway_rotation.x = clamp(
 		sway_rotation.x,
@@ -1353,6 +1369,7 @@ func handle_weapon_sway(delta: float) -> void:
 	var target_rotation: Vector3 = (
 		weapon_base_rotation
 		+ sway_rotation
+		+ weapon_lag_rotation
 		+ weapon_recoil_rotation
 	)
 
