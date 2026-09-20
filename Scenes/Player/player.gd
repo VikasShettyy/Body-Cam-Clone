@@ -1619,7 +1619,12 @@ func fire_bullet() -> void:
 		ray_end
 	)
 
+	# Ignore the player
 	query.exclude = [self]
+
+	# ONLY detect PhysicalBone3D collision layer
+	# Layer 4 = 1 << 3
+	query.collision_mask = 1 << 3
 
 	var result := get_world_3d().direct_space_state.intersect_ray(
 		query
@@ -1632,12 +1637,30 @@ func fire_bullet() -> void:
 	var hit_normal: Vector3 = result["normal"]
 	var hit_object: Object = result["collider"]
 
+	print("================================")
+	print("BULLET HIT: ", hit_object)
+
+	if hit_object is PhysicalBone3D:
+		var hit_bone := hit_object as PhysicalBone3D
+
+		print(
+			"HIT BONE: ",
+			hit_bone.bone_name
+		)
+
+	else:
+		print(
+			"WARNING: Hit something that is not PhysicalBone3D: ",
+			hit_object
+		)
+
+	print("================================")
+
 	handle_bullet_hit(
 		hit_position,
 		hit_normal,
 		hit_object
 	)
-	
 func handle_bullet_hit(
 	hit_position: Vector3,
 	hit_normal: Vector3,
@@ -1646,11 +1669,7 @@ func handle_bullet_hit(
 
 	print("Hit: ", hit_object)
 
-
-	# ========================================================
-	# BULLET IMPACT
-	# ========================================================
-
+	# Bullet impact
 	spawn_bullet_impact(
 		hit_position,
 		hit_normal,
@@ -1658,10 +1677,7 @@ func handle_bullet_hit(
 	)
 
 
-	# ========================================================
-	# FIND ENEMY / DAMAGEABLE
-	# ========================================================
-
+	# Find Damageable + Enemy
 	var damageable: Damageable = null
 	var enemy: CharacterBody3D = null
 
@@ -1669,7 +1685,6 @@ func handle_bullet_hit(
 
 	while current_node != null:
 
-		# Look for Damageable on this node.
 		var possible_damageable := (
 			current_node.get_node_or_null(
 				"Damageable"
@@ -1680,8 +1695,12 @@ func handle_bullet_hit(
 
 			damageable = possible_damageable
 
-			# The node containing Damageable should be Enemy.
-			enemy = current_node as CharacterBody3D
+			var possible_enemy := (
+				current_node as CharacterBody3D
+			)
+
+			if possible_enemy != null:
+				enemy = possible_enemy
 
 			break
 
@@ -1689,20 +1708,40 @@ func handle_bullet_hit(
 
 
 	# ========================================================
-	# DAMAGE ENEMY
+	# DAMAGE
 	# ========================================================
 
 	if damageable != null:
 
+		if damageable.is_dead:
+			return
+
+		var damage_amount := bullet_damage
+
+		if hit_object is PhysicalBone3D:
+
+			var hit_bone := hit_object as PhysicalBone3D
+
+			damage_amount = get_bone_damage(
+				str(hit_bone.bone_name)
+			)
+
+			print(
+				"Bone damage → ",
+				hit_bone.bone_name,
+				" | Damage: ",
+				damage_amount
+			)
+
 		damageable.take_damage(
-			bullet_damage,
+			damage_amount,
 			hit_position,
 			hit_normal
 		)
 
 
 	# ========================================================
-	# ENEMY RAGDOLL IMPULSE
+	# RAGDOLL IMPULSE
 	# ========================================================
 
 	if enemy != null:
@@ -1710,11 +1749,11 @@ func handle_bullet_hit(
 		if enemy.has_method("receive_bullet_hit"):
 
 			enemy.receive_bullet_hit(
-			hit_position,
-			-hit_normal,
-			bullet_force,
-			hit_object
-		)
+				hit_position,
+				-hit_normal,
+				bullet_force,
+				hit_object
+			)
 
 
 	# ========================================================
@@ -1744,10 +1783,13 @@ func handle_bullet_hit(
 
 
 	# ========================================================
-	# GENERIC RIGIDBODY IMPULSE
+	# RIGIDBODY IMPULSE
 	# ========================================================
 
-	if hit_object is RigidBody3D and not hit_object is PhysicalBone3D:
+	if (
+		hit_object is RigidBody3D
+		and not hit_object is PhysicalBone3D
+	):
 
 		var body: RigidBody3D = hit_object
 
@@ -1755,6 +1797,7 @@ func handle_bullet_hit(
 			-hit_normal * bullet_force,
 			hit_position - body.global_position
 		)
+		
 		
 func spawn_bullet_impact(
 	hit_position: Vector3,
@@ -2056,6 +2099,7 @@ func handle_surface_impact(
 		SurfaceInfo.SurfaceKind.GLASS:
 			pass
 			
+			
 func play_metal_impact() -> void:
 	if metal_impact_sound == null:
 		return
@@ -2066,3 +2110,146 @@ func play_metal_impact() -> void:
 	)
 
 	metal_impact_sound.play()
+
+func get_bone_damage_multiplier(
+	bone_name: String
+) -> float:
+
+	var name := bone_name.to_lower()
+
+
+	# ========================================================
+	# HEAD
+	# ========================================================
+
+	if "head" in name:
+
+		return 4.0
+
+
+	# ========================================================
+	# TORSO
+	# ========================================================
+
+	if (
+		"spine" in name
+		or "chest" in name
+	):
+
+		return 1.5
+
+
+	# ========================================================
+	# PELVIS
+	# ========================================================
+
+	if "pelvis" in name:
+
+		return 1.2
+
+
+	# ========================================================
+	# UPPER ARM
+	# ========================================================
+
+	if "upperarm" in name:
+
+		return 0.7
+
+
+	# ========================================================
+	# FOREARM
+	# ========================================================
+
+	if "forearm" in name:
+
+		return 0.6
+
+
+	# ========================================================
+	# HAND
+	# ========================================================
+
+	if "hand" in name:
+
+		return 0.4
+
+
+	# ========================================================
+	# THIGH
+	# ========================================================
+
+	if "thigh" in name:
+
+		return 0.8
+
+
+	# ========================================================
+	# CALF
+	# ========================================================
+
+	if "calf" in name:
+
+		return 0.6
+
+
+	# ========================================================
+	# FOOT
+	# ========================================================
+
+	if "foot" in name:
+
+		return 0.4
+
+
+	# ========================================================
+	# DEFAULT
+	# ========================================================
+
+	return 1.0
+
+func get_bone_damage(bone_name: String) -> float:
+	var name := bone_name.to_lower()
+
+	# HEAD
+	if "head" in name:
+		return 100.0
+
+	# CHEST / TORSO
+	if (
+		"chest" in name
+		or "spine" in name
+	):
+		return 40.0
+
+	# UPPER ARM
+	if (
+		"upperarm" in name
+		or "upper_arm" in name
+	):
+		return 20.0
+
+	# FOREARM
+	if (
+		"forearm" in name
+		or "fore_arm" in name
+	):
+		return 15.0
+
+	# HAND
+	if "hand" in name:
+		return 10.0
+
+	# THIGH
+	if "thigh" in name:
+		return 20.0
+
+	# CALF
+	if "calf" in name:
+		return 15.0
+
+	# FOOT
+	if "foot" in name:
+		return 10.0
+
+	return 25.0

@@ -28,7 +28,7 @@ func take_damage(
 	if is_dead:
 		return
 
-	health -= damage
+	health = max(health - damage, 0.0)
 
 	print(
 		"Damage: ",
