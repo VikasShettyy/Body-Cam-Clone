@@ -354,6 +354,11 @@ var camera_base_position := Vector3.ZERO
 var camera_bob_time := 0.0
 
 
+
+#==============================
+#RAGDOLL
+#================
+
 # ============================================================
 # READY
 # ============================================================
@@ -1641,39 +1646,109 @@ func handle_bullet_hit(
 
 	print("Hit: ", hit_object)
 
+
+	# ========================================================
+	# BULLET IMPACT
+	# ========================================================
+
 	spawn_bullet_impact(
 		hit_position,
 		hit_normal,
 		hit_object
 	)
 
-	var damageable: Damageable = (
-		hit_object.find_child(
-			"Damageable",
-			true,
-			false
-		) as Damageable
-	)
+
+	# ========================================================
+	# FIND ENEMY / DAMAGEABLE
+	# ========================================================
+
+	var damageable: Damageable = null
+	var enemy: CharacterBody3D = null
+
+	var current_node: Node = hit_object as Node
+
+	while current_node != null:
+
+		# Look for Damageable on this node.
+		var possible_damageable := (
+			current_node.get_node_or_null(
+				"Damageable"
+			) as Damageable
+		)
+
+		if possible_damageable != null:
+
+			damageable = possible_damageable
+
+			# The node containing Damageable should be Enemy.
+			enemy = current_node as CharacterBody3D
+
+			break
+
+		current_node = current_node.get_parent()
+
+
+	# ========================================================
+	# DAMAGE ENEMY
+	# ========================================================
 
 	if damageable != null:
+
 		damageable.take_damage(
 			bullet_damage,
 			hit_position,
 			hit_normal
 		)
 
-	var surface: SurfaceInfo = (
-		hit_object.find_child(
-			"SurfaceType",
-			true,
-			false
-		) as SurfaceInfo
-	)
+
+	# ========================================================
+	# ENEMY RAGDOLL IMPULSE
+	# ========================================================
+
+	if enemy != null:
+
+		if enemy.has_method("receive_bullet_hit"):
+
+			enemy.receive_bullet_hit(
+			hit_position,
+			-hit_normal,
+			bullet_force,
+			hit_object
+		)
+
+
+	# ========================================================
+	# SURFACE SOUND
+	# ========================================================
+
+	var surface: SurfaceInfo = null
+
+	current_node = hit_object as Node
+
+	while current_node != null:
+
+		surface = (
+			current_node.get_node_or_null(
+				"SurfaceType"
+			) as SurfaceInfo
+		)
+
+		if surface != null:
+			break
+
+		current_node = current_node.get_parent()
+
 
 	if surface != null:
 		surface.play_impact()
 
-	if hit_object is RigidBody3D:
+
+	# ========================================================
+	# GENERIC RIGIDBODY IMPULSE
+	# ========================================================
+
+	if hit_object is RigidBody3D and not hit_object is PhysicalBone3D:
+
 		var body: RigidBody3D = hit_object
 
 		body.apply_impulse(
@@ -1681,7 +1756,6 @@ func handle_bullet_hit(
 			hit_position - body.global_position
 		)
 		
-
 func spawn_bullet_impact(
 	hit_position: Vector3,
 	hit_normal: Vector3,

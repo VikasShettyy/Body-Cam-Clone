@@ -62,6 +62,32 @@ var stuck_timer := 0.0
 var recovery_timer := 0.0
 var last_position := Vector3.ZERO
 
+@export_category("Ragdoll")
+@onready var ragdoll: PhysicalBoneSimulator3D = (
+	$Sketchfab_Scene.find_child(
+		"PhysicalBoneSimulator3D",
+		true,
+		false
+	) as PhysicalBoneSimulator3D
+)
+var ragdoll_active := false
+
+@onready var enemy_collision: CollisionShape3D = $CollisionShape3D
+@export_category("Ragdoll Impulse")
+
+@export var ragdoll_impulse_multiplier := 1.0
+
+@export var head_impulse_multiplier := 1.35
+@export var torso_impulse_multiplier := 1.15
+
+@export var upper_arm_impulse_multiplier := 0.85
+@export var forearm_impulse_multiplier := 0.75
+@export var hand_impulse_multiplier := 0.55
+
+@export var thigh_impulse_multiplier := 0.90
+@export var calf_impulse_multiplier := 0.75
+@export var foot_impulse_multiplier := 0.50
+
 
 func _ready() -> void:
 	
@@ -654,12 +680,297 @@ func stop_horizontal(delta: float) -> void:
 # ============================================================
 
 func _on_died() -> void:
-
 	state = State.DEAD
+	enable_ragdoll()
+
+#=======================================
+#RAGDOLL FUNCTIONS
+#====================================
+func enable_ragdoll() -> void:
+
+	if ragdoll_active:
+		return
+
+	if ragdoll == null:
+		print("ERROR: PhysicalBoneSimulator3D not found!")
+		return
+
+	ragdoll_active = true
 
 	velocity = Vector3.ZERO
 
-	navigation_path.clear()
+	if enemy_collision != null:
+		enemy_collision.disabled = true
 
-	print("Enemy died")
-	queue_free()
+	animation_tree.active = false
+
+	ragdoll.active = true
+
+	# Configure individual physical bones.
+	configure_ragdoll_bones()
+
+	# Start ragdoll.
+	ragdoll.physical_bones_start_simulation()
+
+	print("Enemy ragdoll activated.")
+	
+	
+func receive_bullet_hit(
+	hit_position: Vector3,
+	hit_direction: Vector3,
+	impulse_strength: float,
+	hit_object: Object = null
+) -> void:
+
+	if not ragdoll_active:
+		return
+
+	if ragdoll == null:
+		return
+
+
+	var hit_bone: PhysicalBone3D = null
+
+
+	# ========================================================
+	# USE ACTUAL HIT BONE
+	# ========================================================
+
+	if hit_object is PhysicalBone3D:
+
+		hit_bone = hit_object as PhysicalBone3D
+
+
+	# ========================================================
+	# IGNORE ROOT
+	# ========================================================
+
+	if hit_bone != null:
+
+		if hit_bone.bone_name == &"_rootJoint":
+			hit_bone = null
+
+
+	# ========================================================
+	# FALLBACK
+	# ========================================================
+
+	if hit_bone == null:
+
+		var closest_distance := INF
+
+		for child in ragdoll.get_children():
+
+			if not child is PhysicalBone3D:
+				continue
+
+			var bone := child as PhysicalBone3D
+
+			if bone.bone_name == &"_rootJoint":
+				continue
+
+			if "Weapon" in bone.bone_name:
+				continue
+
+			var distance := (
+				bone.global_position.distance_to(
+					hit_position
+				)
+			)
+
+			if distance < closest_distance:
+
+				closest_distance = distance
+				hit_bone = bone
+
+
+	# ========================================================
+	# NO VALID BONE
+	# ========================================================
+
+	if hit_bone == null:
+		return
+
+
+	# ========================================================
+	# IGNORE WEAPON
+	# ========================================================
+
+	if "Weapon" in hit_bone.bone_name:
+		return
+
+
+	# ========================================================
+	# BONE-SPECIFIC IMPULSE
+	# ========================================================
+
+	var direction := hit_direction.normalized()
+
+	var bone_multiplier := get_bone_impulse_multiplier(
+		str(hit_bone.bone_name)
+	)
+
+	var final_impulse := (
+		impulse_strength
+		* ragdoll_impulse_multiplier
+		* bone_multiplier
+	)
+
+
+	hit_bone.apply_central_impulse(
+		direction * final_impulse
+	)
+
+
+	print(
+		"Ragdoll impulse → ",
+		hit_bone.bone_name,
+		" | Multiplier: ",
+		bone_multiplier,
+		" | Impulse: ",
+		final_impulse
+	)
+	
+		
+func configure_ragdoll_bones() -> void:
+
+	if ragdoll == null:
+		return
+
+	for child in ragdoll.get_children():
+
+		if not child is PhysicalBone3D:
+			continue
+
+		var bone := child as PhysicalBone3D
+		var bone_name := str(bone.bone_name)
+
+
+		# ====================================================
+		# DEFAULT RAGDOLL DAMPING
+		# ====================================================
+
+		bone.linear_damp = 2.0
+		bone.angular_damp = 5.0
+		bone.can_sleep = true
+
+
+		# ====================================================
+		# HEAD
+		# ====================================================
+
+		if "Head" in bone_name:
+
+			bone.angular_damp = 20.0
+			bone.linear_damp = 3.0
+
+
+		# ====================================================
+		# FEET
+		# ====================================================
+
+		elif (
+			"Foot" in bone_name
+			and "Toe" not in bone_name
+		):
+
+			bone.angular_damp = 25.0
+			bone.linear_damp = 4.0
+
+
+		# ====================================================
+		# HANDS
+		# ====================================================
+
+		elif "Hand" in bone_name:
+
+			bone.angular_damp = 10.0
+			
+func get_bone_impulse_multiplier(
+	bone_name: String
+) -> float:
+
+	var name := bone_name.to_lower()
+
+
+	# ========================================================
+	# HEAD
+	# ========================================================
+
+	if "head" in name:
+
+		return head_impulse_multiplier
+
+
+	# ========================================================
+	# TORSO
+	# ========================================================
+
+	if (
+		"pelvis" in name
+		or "spine" in name
+		or "chest" in name
+	):
+
+		return torso_impulse_multiplier
+
+
+	# ========================================================
+	# UPPER ARMS
+	# ========================================================
+
+	if "upperarm" in name:
+
+		return upper_arm_impulse_multiplier
+
+
+	# ========================================================
+	# FOREARMS
+	# ========================================================
+
+	if "forearm" in name:
+
+		return forearm_impulse_multiplier
+
+
+	# ========================================================
+	# HANDS
+	# ========================================================
+
+	if "hand" in name:
+
+		return hand_impulse_multiplier
+
+
+	# ========================================================
+	# THIGHS
+	# ========================================================
+
+	if "thigh" in name:
+
+		return thigh_impulse_multiplier
+
+
+	# ========================================================
+	# CALVES
+	# ========================================================
+
+	if "calf" in name:
+
+		return calf_impulse_multiplier
+
+
+	# ========================================================
+	# FEET
+	# ========================================================
+
+	if "foot" in name:
+
+		return foot_impulse_multiplier
+
+
+	# ========================================================
+	# DEFAULT
+	# ========================================================
+
+	return 1.0
