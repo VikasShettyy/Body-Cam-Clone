@@ -44,7 +44,7 @@ unit_size = 5.0
 [node name="ReloadSound" type="AudioStreamPlayer3D" parent="Muzzel"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0.129463)
 stream = ExtResource("5_om3e0")
-volume_db = -12.0
+volume_db = -20.0
 unit_size = 5.0
 max_distance = 10.0
 
@@ -53,5 +53,5 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -0.519456)
 visible = false
 light_color = Color(0.843137, 0.541176, 0.333333, 1)
 light_energy = 10.0
-omni_range = 2.799
+omni_range = 10.0
 omni_shadow_mode = 0

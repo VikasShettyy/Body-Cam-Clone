@@ -1,10 +1,14 @@
-[gd_resource type="AudioBusLayout" load_steps=2 format=3 uid="uid://cg8ss51vwxv2r"]
+[gd_resource type="AudioBusLayout" load_steps=3 format=3 uid="uid://cg8ss51vwxv2r"]
 
 [sub_resource type="AudioEffectReverb" id="AudioEffectReverb_j3pel"]
 resource_name = "Reverb"
 room_size = 0.2
 damping = 0.0
 spread = 0.27
+
+[sub_resource type="AudioEffectReverb" id="AudioEffectReverb_g28q7"]
+resource_name = "Reverb"
+room_size = 0.5
 
 [resource]
 bus/1/name = &"Reverb"
@@ -15,3 +19,11 @@ bus/1/volume_db = 0.0
 bus/1/send = &"Master"
 bus/1/effect/0/effect = SubResource("AudioEffectReverb_j3pel")
 bus/1/effect/0/enabled = true
+bus/2/name = &"Footsteps"
+bus/2/solo = false
+bus/2/mute = false
+bus/2/bypass_fx = false
+bus/2/volume_db = 0.0
+bus/2/send = &"Master"
+bus/2/effect/0/effect = SubResource("AudioEffectReverb_g28q7")
+bus/2/effect/0/enabled = true

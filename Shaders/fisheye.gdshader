@@ -9,17 +9,14 @@ uniform sampler2D screen_texture :
 
 
 // ============================================================
-// PANINI PROJECTION
+// BODYCAM LENS
 // ============================================================
 
-uniform float lens_zoom :
-	hint_range(0.8, 1.5, 0.001) = 1.04;
+uniform float fisheye_strength :
+	hint_range(0.0, 0.50, 0.001) = 0.16;
 
-uniform float panini_strength :
-	hint_range(0.0, 1.0, 0.001) = 0.60;
-
-uniform float panini_zoom :
-	hint_range(0.5, 2.0, 0.001) = 1.0;
+uniform float fisheye_zoom :
+	hint_range(0.80, 1.50, 0.001) = 1.05;
 
 
 // ============================================================
@@ -27,7 +24,7 @@ uniform float panini_zoom :
 // ============================================================
 
 uniform float chromatic_aberration :
-	hint_range(0.0, 0.02, 0.0001) = 0.002;
+	hint_range(0.0, 0.02, 0.0001) = 0.0015;
 
 uniform float chromatic_edge_strength :
 	hint_range(0.0, 2.0, 0.01) = 1.0;
@@ -70,7 +67,7 @@ uniform float grain_size :
 // ============================================================
 
 uniform float vignette_strength :
-	hint_range(0.0, 1.0, 0.01) = 0.45;
+	hint_range(0.0, 1.0, 0.01) = 0.30;
 
 uniform float vignette_radius :
 	hint_range(0.1, 1.5, 0.01) = 0.82;
@@ -97,37 +94,30 @@ uniform vec2 motion_blur_direction = vec2(0.0);
 
 
 // ============================================================
-// PANINI PROJECTION
+// BODYCAM FISHEYE / BARREL DISTORTION
 // ============================================================
 
-vec2 panini_projection(vec2 uv)
+vec2 fisheye_projection(vec2 uv)
 {
 	vec2 p = uv - vec2(0.5);
 
+	// Correct for widescreen aspect ratio.
 	p.x *= aspect_ratio;
-
-	p *= panini_zoom;
-
-	float d = panini_strength;
 
 	float r2 = dot(p, p);
 
-	float denom = sqrt(
+	// Barrel distortion.
+	float distortion =
 		1.0 +
-		r2
-	);
+		fisheye_strength * r2;
 
-	float scale = (
-		d + 1.0
-	) / (
-		d + denom
-	);
+	p *= distortion;
 
-	p *= scale;
+	// Zoom slightly to hide distorted edges.
+	p *= fisheye_zoom;
 
+	// Restore aspect ratio.
 	p.x /= aspect_ratio;
-
-	p *= lens_zoom;
 
 	return p + vec2(0.5);
 }
@@ -236,16 +226,8 @@ vec3 apply_motion_blur(
 		motion_blur_strength;
 
 
-	// --------------------------------------------------------
-	// Center sample
-	// --------------------------------------------------------
-
 	vec3 blur_color = center_color;
 
-
-	// --------------------------------------------------------
-	// Sample 1
-	// --------------------------------------------------------
 
 	blur_color += texture(
 		screen_texture,
@@ -257,10 +239,6 @@ vec3 apply_motion_blur(
 	).rgb;
 
 
-	// --------------------------------------------------------
-	// Sample 2
-	// --------------------------------------------------------
-
 	blur_color += texture(
 		screen_texture,
 		clamp(
@@ -270,10 +248,6 @@ vec3 apply_motion_blur(
 		)
 	).rgb;
 
-
-	// --------------------------------------------------------
-	// Sample 3
-	// --------------------------------------------------------
 
 	blur_color += texture(
 		screen_texture,
@@ -285,10 +259,6 @@ vec3 apply_motion_blur(
 	).rgb;
 
 
-	// --------------------------------------------------------
-	// Sample 4
-	// --------------------------------------------------------
-
 	blur_color += texture(
 		screen_texture,
 		clamp(
@@ -298,10 +268,6 @@ vec3 apply_motion_blur(
 		)
 	).rgb;
 
-
-	// --------------------------------------------------------
-	// Average all 5 samples
-	// --------------------------------------------------------
 
 	return blur_color * 0.2;
 }
@@ -317,16 +283,23 @@ void fragment()
 
 
 	// ========================================================
-	// PANINI
+	// FISHEYE / BARREL DISTORTION
 	// ========================================================
 
 	vec2 distorted_uv =
-		panini_projection(uv);
+		fisheye_projection(uv);
 
 
 	// ========================================================
-	// SAFETY CLAMP
+	// EDGE PROTECTION
 	// ========================================================
+
+	bool outside_screen = (
+		distorted_uv.x < 0.0 ||
+		distorted_uv.x > 1.0 ||
+		distorted_uv.y < 0.0 ||
+		distorted_uv.y > 1.0
+	);
 
 	distorted_uv = clamp(
 		distorted_uv,
@@ -336,7 +309,7 @@ void fragment()
 
 
 	// ========================================================
-	// BASE SAMPLE
+	// BASE IMAGE
 	// ========================================================
 
 	vec3 final_color =
@@ -356,7 +329,6 @@ void fragment()
 
 	float distance_from_center =
 		length(direction);
-
 
 	float edge_factor =
 		clamp(
@@ -489,7 +461,6 @@ void fragment()
 			grain_position
 		);
 
-
 	noise =
 		noise * 2.0 - 1.0;
 
@@ -505,7 +476,6 @@ void fragment()
 
 	float vignette =
 		calculate_vignette(uv);
-
 
 	final_color *=
 		vignette;

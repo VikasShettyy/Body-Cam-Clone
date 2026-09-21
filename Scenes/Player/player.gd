@@ -368,9 +368,8 @@ var camera_bob_time := 0.0
 
 
 #==============================
-#Weapon Clip Through Wall
+#weapon smoke
 #================
-
 
 # ============================================================
 # READY
@@ -405,6 +404,8 @@ func _ready() -> void:
 
 	if muzzle_light != null:
 		muzzle_light.visible = false
+
+	
 	# Print available weapon animations.
 	print("Weapon animations:")
 	print(weapon_animation.get_animation_list())
@@ -1612,6 +1613,7 @@ func shoot() -> void:
 
 	eject_shell()
 	fire_bullet()
+	
 	
 	
 func eject_shell() -> void:
