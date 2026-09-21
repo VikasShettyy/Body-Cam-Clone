@@ -264,7 +264,18 @@ var camera_recoil := Vector2.ZERO
 
 @export var muzzle_flash_duration := 0.04
 
+# Flash variation
+@export var muzzle_flash_scale_min := 0.75
+@export var muzzle_flash_scale_max := 1.25
+
+@export var muzzle_flash_rotation_variation := 0.8
+
+@export var muzzle_flash_position_variation := 0.015
+
 var muzzle_flash_timer := 0.0
+var muzzle_flash_base_scale := Vector3.ONE
+var muzzle_flash_base_rotation := Vector3.ZERO
+var muzzle_flash_base_position := Vector3.ZERO
 
 #Show Bullets
 
@@ -402,9 +413,12 @@ func _ready() -> void:
 	if muzzle_flash != null:
 		muzzle_flash.visible = false
 
+		muzzle_flash_base_scale = muzzle_flash.scale
+		muzzle_flash_base_rotation = muzzle_flash.rotation
+		muzzle_flash_base_position = muzzle_flash.position
+
 	if muzzle_light != null:
 		muzzle_light.visible = false
-
 	
 	# Print available weapon animations.
 	print("Weapon animations:")
@@ -1591,9 +1605,11 @@ func shoot() -> void:
 	# --------------------------------------------------------
 
 	if muzzle_flash != null:
+		randomize_muzzle_flash()
 		muzzle_flash.visible = true
 
 	if muzzle_light != null:
+		muzzle_light.light_energy = randf_range(5.0, 10.0)
 		muzzle_light.visible = true
 
 	muzzle_flash_timer = muzzle_flash_duration
@@ -1615,7 +1631,78 @@ func shoot() -> void:
 	fire_bullet()
 	
 	
-	
+func randomize_muzzle_flash() -> void:
+
+	if muzzle_flash == null:
+		return
+
+	# ========================================================
+	# RANDOM SCALE
+	# ========================================================
+
+	var scale_variation := randf_range(
+		muzzle_flash_scale_min,
+		muzzle_flash_scale_max
+	)
+
+	# Slightly different scale on each axis.
+	var random_scale := Vector3(
+		scale_variation * randf_range(0.85, 1.15),
+		scale_variation * randf_range(0.75, 1.20),
+		scale_variation
+	)
+
+	muzzle_flash.scale = (
+		muzzle_flash_base_scale *
+		random_scale
+	)
+
+
+	# ========================================================
+	# RANDOM ROTATION
+	# ========================================================
+
+	muzzle_flash.rotation = (
+		muzzle_flash_base_rotation +
+		Vector3(
+			randf_range(
+				-muzzle_flash_rotation_variation,
+				muzzle_flash_rotation_variation
+			),
+			randf_range(
+				-muzzle_flash_rotation_variation,
+				muzzle_flash_rotation_variation
+			),
+			randf_range(
+				-muzzle_flash_rotation_variation,
+				muzzle_flash_rotation_variation
+			)
+		)
+	)
+
+
+	# ========================================================
+	# SMALL POSITION VARIATION
+	# ========================================================
+
+	muzzle_flash.position = (
+		muzzle_flash_base_position +
+		Vector3(
+			randf_range(
+				-muzzle_flash_position_variation,
+				muzzle_flash_position_variation
+			),
+			randf_range(
+				-muzzle_flash_position_variation,
+				muzzle_flash_position_variation
+			),
+			randf_range(
+				-muzzle_flash_position_variation,
+				muzzle_flash_position_variation
+			)
+		)
+	)
+		
 func eject_shell() -> void:
 	if shell_scene == null:
 		return
@@ -1654,14 +1741,6 @@ func eject_shell() -> void:
 		+ Vector3.UP * shell_upward_force
 	)
 
-
-	# --------------------------------------------------------
-	# Gunshot sound
-	# --------------------------------------------------------
-
-	if gunshot_sound != null:
-
-		gunshot_sound.play()
 
 
 # ============================================================
