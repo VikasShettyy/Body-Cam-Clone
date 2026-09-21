@@ -17,8 +17,12 @@ config/icon="res://icon.svg"
 
 [display]
 
-window/size/viewport_width=720
-window/size/viewport_height=480
+window/size/viewport_width=480
+window/size/viewport_height=360
+window/size/mode=3
+window/stretch/mode="canvas_items"
+window/vsync/vsync_mode=0
+window/scale=0.4
 
 [dotnet]
 
@@ -98,4 +102,4 @@ lean_right={
 
 [rendering]
 
-scaling_3d/scale=0.8
+scaling_3d/scale=0.4

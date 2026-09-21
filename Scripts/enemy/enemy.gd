@@ -88,6 +88,8 @@ var ragdoll_active := false
 @export var calf_impulse_multiplier := 0.75
 @export var foot_impulse_multiplier := 0.50
 
+@export_category("Death")
+@export var corpse_lifetime := 8.0
 
 func _ready() -> void:
 	
@@ -682,6 +684,11 @@ func stop_horizontal(delta: float) -> void:
 func _on_died() -> void:
 	state = State.DEAD
 	enable_ragdoll()
+
+	await get_tree().create_timer(corpse_lifetime).timeout
+
+	if is_inside_tree():
+		queue_free()
 
 #=======================================
 #RAGDOLL FUNCTIONS

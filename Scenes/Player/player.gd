@@ -161,6 +161,16 @@ var current_weapon_lean := 0.0
 @export var tactical_lean_amount := 0.16
 @export var tactical_sprint_lean_amount := 0.12
 # ============================================================
+# CAMERA BOb
+# ============================================================
+@export_category("Camera Idle Bob")
+
+@export var camera_idle_bob_amount := 0.012
+@export var camera_idle_bob_speed := 1.5
+@export var camera_idle_sway_amount := 0.008
+
+var camera_idle_time := 0.0
+# ============================================================
 # CAMERA INERTIA
 # ============================================================
 
@@ -356,8 +366,9 @@ var camera_bob_time := 0.0
 
 
 #==============================
-#RAGDOLL
+#Weapon Clip Through Wall
 #================
+
 
 # ============================================================
 # READY
@@ -499,7 +510,7 @@ func _unhandled_input(event: InputEvent) -> void:
 # ============================================================
 
 func _physics_process(delta: float) -> void:
-
+		
 	handle_movement(delta)
 
 	handle_gravity(delta)
@@ -528,6 +539,7 @@ func _physics_process(delta: float) -> void:
 	handle_muzzle_flash(delta)
 
 	handle_weapon_ads(delta)
+	
 	
 	
 # ============================================================
@@ -785,6 +797,44 @@ func handle_bodycam_motion(delta: float) -> void:
 	# TARGET CAMERA POSITION
 	# ========================================================
 
+# ========================================================
+# IDLE CAMERA BOB / BREATHING
+# ========================================================
+
+	var idle_bob := Vector3.ZERO
+
+	if not is_moving and is_on_floor():
+
+		camera_idle_time += delta * camera_idle_bob_speed
+
+		idle_bob.x = (
+			sin(camera_idle_time * 0.7)
+			* camera_idle_sway_amount
+		)
+
+		idle_bob.y = (
+			sin(camera_idle_time)
+			* camera_idle_bob_amount
+		)
+
+		idle_bob.z = (
+			cos(camera_idle_time * 0.5)
+			* camera_idle_bob_amount
+			* 0.35
+		)
+	else:
+
+		camera_idle_time = move_toward(
+			camera_idle_time,
+			0.0,
+			delta * 2.0
+		)
+
+
+	# ========================================================
+	# TARGET CAMERA POSITION
+	# ========================================================
+
 	var target_position: Vector3 = (
 		camera_base_position
 		+ Vector3(
@@ -792,6 +842,7 @@ func handle_bodycam_motion(delta: float) -> void:
 			bob_y,
 			bob_z
 		)
+		+ idle_bob
 	)
 
 
@@ -1624,7 +1675,7 @@ func fire_bullet() -> void:
 
 	# ONLY detect PhysicalBone3D collision layer
 	# Layer 4 = 1 << 3
-	query.collision_mask = 1 << 3
+	query.collision_mask = (1 << 0) | (1 << 3)
 
 	var result := get_world_3d().direct_space_state.intersect_ray(
 		query
