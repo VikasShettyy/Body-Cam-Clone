@@ -21,6 +21,42 @@ enum State {
 @export_category("Detection")
 @export var detection_distance := 20.0
 
+# ============================================================
+# AI LOD / PERFORMANCE
+# ============================================================
+
+@export_category("AI LOD")
+
+@export var full_ai_distance := 15.0
+@export var reduced_ai_distance := 30.0
+@export var distant_ai_distance := 50.0
+
+@export var full_ai_interval := 0.10
+@export var reduced_ai_interval := 0.25
+@export var distant_ai_interval := 0.50
+@export var dormant_ai_interval := 1.0
+
+var ai_lod := 0
+var ai_timer := 0.0
+
+# ============================================================
+# ANIMATION LOD / PERFORMANCE
+# ============================================================
+
+@export_category("Animation LOD")
+
+@export var animation_full_distance := 15.0
+@export var animation_reduced_distance := 30.0
+@export var animation_distant_distance := 50.0
+
+@export var animation_full_interval := 0.0
+@export var animation_reduced_interval := 0.05
+@export var animation_distant_interval := 0.10
+@export var animation_dormant_interval := 0.20
+
+var animation_lod := 0
+var animation_lod_timer := 0.0
+
 
 @export_category("Navigation")
 @export var repath_interval := 0.15
@@ -115,19 +151,130 @@ func initialize_navigation() -> void:
 	print("Enemy navigation initialized.")
 
 
+func update_ai_lod() -> void:
+
+	if player == null:
+		return
+
+	var distance := global_position.distance_to(
+		player.global_position
+	)
+
+	# ========================================================
+	# FULL
+	# ========================================================
+
+	if distance <= full_ai_distance:
+
+		ai_lod = 0
+		return
+
+
+	# ========================================================
+	# REDUCED
+	# ========================================================
+
+	if distance <= reduced_ai_distance:
+
+		ai_lod = 1
+		return
+
+
+	# ========================================================
+	# DISTANT
+	# ========================================================
+
+	if distance <= distant_ai_distance:
+
+		ai_lod = 2
+		return
+
+
+	# ========================================================
+	# DORMANT
+	# ========================================================
+
+	ai_lod = 3
+	
+	
 func _physics_process(delta: float) -> void:
 
 	if state == State.DEAD:
 		return
 
+
+	# ========================================================
+	# GRAVITY
+	# ========================================================
+
 	handle_gravity(delta)
+
+
+	# ========================================================
+	# ATTACK TIMER
+	# ========================================================
 
 	attack_timer = max(
 		attack_timer - delta,
 		0.0
 	)
 
-	find_player()
+
+	# ========================================================
+	# AI LOD UPDATE
+	# ========================================================
+
+	ai_timer -= delta
+
+	if ai_timer <= 0.0:
+
+		# Find player if necessary.
+		if player == null:
+
+			var players := (
+				get_tree().get_nodes_in_group("player")
+			)
+
+			if not players.is_empty():
+				player = players[0] as CharacterBody3D
+
+
+		# Calculate distance LOD.
+		update_ai_lod()
+
+
+		# Run AI according to LOD.
+		if player != null:
+
+			match ai_lod:
+
+				0:
+					# FULL AI
+					find_player()
+
+				1:
+					# REDUCED AI
+					find_player()
+
+				2:
+					# DISTANT AI
+					find_player()
+
+				3:
+					# DORMANT AI
+					# Don't perform expensive AI decisions.
+					pass
+
+
+		ai_timer = get_ai_interval()
+
+
+	# ========================================================
+	# STATE LOGIC
+	# ========================================================
+
+	# DORMANT enemies still move if they already have
+	# a path, but don't continuously rebuild AI decisions.
 
 	match state:
 
@@ -135,15 +282,35 @@ func _physics_process(delta: float) -> void:
 			handle_idle(delta)
 
 		State.CHASING:
-			handle_chasing(delta)
+			handle_chasing_lod(delta)
 
 		State.ATTACKING:
 			handle_attack(delta)
 
-	update_animation()
+
+	# ========================================================
+	# ANIMATION
+	# ========================================================
+
+	# ========================================================
+# ANIMATION LOD
+# ========================================================
+
+	animation_lod_timer -= delta
+
+	if animation_lod_timer <= 0.0:
+
+		update_animation_lod()
+
+		update_animation()
+
+		animation_lod_timer = get_animation_interval()
+
+	# ========================================================
+	# PHYSICS MOVEMENT
+	# ========================================================
 
 	move_and_slide()
-
 
 # ============================================================
 # GRAVITY
@@ -271,7 +438,7 @@ func handle_idle(delta: float) -> void:
 # ============================================================
 # CHASING
 # ============================================================
-func handle_chasing(delta: float) -> void:
+func handle_chasing_lod(delta: float) -> void:
 
 	if player == null:
 
@@ -279,6 +446,10 @@ func handle_chasing(delta: float) -> void:
 
 		return
 
+
+	# ========================================================
+	# ATTACK RANGE
+	# ========================================================
 
 	var distance := (
 		global_position.distance_to(
@@ -303,77 +474,102 @@ func handle_chasing(delta: float) -> void:
 		return
 
 
-	# --------------------------------------------------
+	# ========================================================
 	# PATH REBUILD
-	# --------------------------------------------------
+	# ========================================================
 
 	repath_timer += delta
 
-	if repath_timer >= repath_interval:
+
+	var current_repath_interval := repath_interval
+
+
+	match ai_lod:
+
+		0:
+			# Close enemy.
+			current_repath_interval = repath_interval
+
+		1:
+			# Medium distance.
+			current_repath_interval = 0.30
+
+		2:
+			# Far enemy.
+			current_repath_interval = 0.60
+
+		3:
+			# Very far.
+			current_repath_interval = 1.0
+
+
+	if repath_timer >= current_repath_interval:
 
 		repath_timer = 0.0
 
 		build_navigation_path()
 
 
-	# --------------------------------------------------
+	# ========================================================
 	# RECOVERY TIMER
-	# --------------------------------------------------
+	# ========================================================
 
 	if recovery_timer > 0.0:
 
 		recovery_timer -= delta
-
-		return
-
-
-	# --------------------------------------------------
-	# CHECK IF ENEMY IS STUCK
-	# --------------------------------------------------
-
-	var moved_distance := (
-		global_position.distance_to(
-			last_position
-		)
-	)
-
-
-	if moved_distance < stuck_distance_threshold:
-
-		stuck_timer += delta
-
-	else:
-
-		stuck_timer = 0.0
-
-
-	last_position = global_position
-
-
-	# --------------------------------------------------
-	# STUCK
-	# --------------------------------------------------
-
-	if stuck_timer >= stuck_check_time:
-
-		stuck_timer = 0.0
-
-		recovery_timer = recovery_repath_delay
-
-		print(
-			"Enemy appears stuck. Rebuilding path."
-		)
-
-		build_navigation_path()
 
 		stop_horizontal(delta)
 
 		return
 
 
-	# --------------------------------------------------
+	# ========================================================
+	# STUCK CHECK
+	# ========================================================
+
+	# Only do expensive stuck detection for nearby enemies.
+
+	if ai_lod <= 1:
+
+		var moved_distance := (
+			global_position.distance_to(
+				last_position
+			)
+		)
+
+
+		if moved_distance < stuck_distance_threshold:
+
+			stuck_timer += delta
+
+		else:
+
+			stuck_timer = 0.0
+
+
+		last_position = global_position
+
+
+		# ====================================================
+		# STUCK
+		# ====================================================
+
+		if stuck_timer >= stuck_check_time:
+
+			stuck_timer = 0.0
+
+			recovery_timer = recovery_repath_delay
+
+			build_navigation_path()
+
+			stop_horizontal(delta)
+
+			return
+
+
+	# ========================================================
 	# NO PATH
-	# --------------------------------------------------
+	# ========================================================
 
 	if navigation_path.is_empty():
 
@@ -389,9 +585,9 @@ func handle_chasing(delta: float) -> void:
 		return
 
 
-	# --------------------------------------------------
+	# ========================================================
 	# CURRENT WAYPOINT
-	# --------------------------------------------------
+	# ========================================================
 
 	var waypoint := navigation_path[path_index]
 
@@ -410,9 +606,9 @@ func handle_chasing(delta: float) -> void:
 	)
 
 
-	# --------------------------------------------------
+	# ========================================================
 	# WAYPOINT REACHED
-	# --------------------------------------------------
+	# ========================================================
 
 	if distance_to_waypoint <= waypoint_reach_distance:
 
@@ -428,9 +624,9 @@ func handle_chasing(delta: float) -> void:
 	direction = direction.normalized()
 
 
-	# --------------------------------------------------
+	# ========================================================
 	# MOVEMENT
-	# --------------------------------------------------
+	# ========================================================
 
 	velocity.x = move_toward(
 		velocity.x,
@@ -446,9 +642,9 @@ func handle_chasing(delta: float) -> void:
 	)
 
 
-	# --------------------------------------------------
+	# ========================================================
 	# ROTATION
-	# --------------------------------------------------
+	# ========================================================
 
 	var target_rotation := atan2(
 		-direction.x,
@@ -461,7 +657,8 @@ func handle_chasing(delta: float) -> void:
 		target_rotation,
 		8.0 * delta
 	)
-
+	
+	
 # ============================================================
 # BUILD NAVIGATION PATH
 # ============================================================
@@ -981,3 +1178,66 @@ func get_bone_impulse_multiplier(
 	# ========================================================
 
 	return 1.0
+
+func get_ai_interval() -> float:
+
+	match ai_lod:
+
+		0:
+			return full_ai_interval
+
+		1:
+			return reduced_ai_interval
+
+		2:
+			return distant_ai_interval
+
+		3:
+			return dormant_ai_interval
+
+	return full_ai_interval
+
+func update_animation_lod() -> void:
+
+	if player == null:
+		return
+
+	var distance := global_position.distance_to(
+		player.global_position
+	)
+
+	if distance <= animation_full_distance:
+
+		animation_lod = 0
+		return
+
+	if distance <= animation_reduced_distance:
+
+		animation_lod = 1
+		return
+
+	if distance <= animation_distant_distance:
+
+		animation_lod = 2
+		return
+
+	animation_lod = 3
+	
+	
+func get_animation_interval() -> float:
+
+	match animation_lod:
+
+		0:
+			return animation_full_interval
+
+		1:
+			return animation_reduced_interval
+
+		2:
+			return animation_distant_interval
+
+		3:
+			return animation_dormant_interval
+
+	return 0.0
