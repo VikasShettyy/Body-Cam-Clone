@@ -151,6 +151,8 @@ var current_weapon_lean := 0.0
 @export var camera_run_tilt := 0.065
 @export var camera_tilt_smoothness := 10.0
 @export var camera_forward_amount := 0.030
+@export var sprint_bob_amount := 0.035
+@export var sprint_sway_amount := 0.025
 
 #LEAN MOVEMENT
 @export_category("Lean Movement")
@@ -645,6 +647,7 @@ func handle_gravity(delta: float) -> void:
 			velocity.y = 0.0
 
 
+
 # ============================================================
 # BODYCAM MOTION
 # ============================================================
@@ -756,26 +759,58 @@ func handle_bodycam_motion(delta: float) -> void:
 	# VERTICAL BOB
 	# ========================================================
 
-	var bob_y: float = (
-		abs(sin(camera_bob_time))
-		* walk_bob_amount
-		* speed_factor
-	)
-	# ========================================================
-	# SIDE-TO-SIDE BODY SWAY
-	# ========================================================
 	var bob_x: float = 0.0
+	var bob_y: float = 0.0
+	var bob_z: float = 0.0
 
+	if is_sprinting:
 
-	# ========================================================
-	# FORWARD / BACKWARD BODY MOVEMENT
-	# ========================================================
+		# ====================================================
+		# RUNNING
+		# ====================================================
 
-	var bob_z: float = (
-		sin(camera_bob_time)
-		* camera_forward_amount
-		* speed_factor
-	)
+		bob_y = (
+			abs(sin(camera_bob_time))
+			* sprint_bob_amount
+			* speed_factor
+		)
+
+		bob_x = (
+			cos(camera_bob_time * 0.5)
+			* sprint_sway_amount
+			* speed_factor
+		)
+
+		bob_z = (
+			sin(camera_bob_time * 0.7)
+			* camera_forward_amount
+			* 0.8
+			* speed_factor
+		)
+
+	else:
+
+		# ====================================================
+		# WALKING
+		# ====================================================
+
+		bob_y = (
+			abs(sin(camera_bob_time))
+			* walk_bob_amount
+			* speed_factor
+		)
+
+		bob_x = (
+			cos(camera_bob_time)
+			* walk_sway_amount
+			* speed_factor
+		)
+
+		bob_z = (
+			sin(camera_bob_time)
+			* camera_forward_amount
+			* speed_factor
+		)
 
 
 	# ========================================================
@@ -873,10 +908,6 @@ func handle_bodycam_motion(delta: float) -> void:
 
 	var tilt_amount: float = camera_walk_tilt
 
-	if is_sprinting:
-		tilt_amount = camera_run_tilt
-
-
 	var target_tilt: float = 0.0
 
 
@@ -924,8 +955,7 @@ func handle_bodycam_motion(delta: float) -> void:
 		camera_pivot.rotation.z,
 		final_roll,
 		tilt_smoothing
-	)
-# ============================================================
+	)# ============================================================
 # CAMERA INERTIA
 # ============================================================
 

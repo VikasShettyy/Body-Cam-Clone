@@ -68,7 +68,7 @@ compositor_effects = Array[CompositorEffect]([SubResource("CompositorEffect_5yso
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_oidnl"]
 shader = ExtResource("4_pnj4j")
 shader_parameter/lens_zoom = 1.04
-shader_parameter/panini_strength = 0.8
+shader_parameter/panini_strength = 1.0
 shader_parameter/panini_zoom = 1.0
 shader_parameter/chromatic_aberration = 0.0025
 shader_parameter/chromatic_edge_strength = 1.0
@@ -144,7 +144,11 @@ weapon_sway_speed = 10.0
 weapon_rotation_lag = 0.04
 fire_rate = 10.0
 weapon_idle_amount = 0.005
-walk_bob_amount = 0.06
+walk_bob_amount = 0.2
+walk_bob_frequency = 8.0
+sprint_bob_frequency = 8.0
+camera_run_tilt = 0.065
+sprint_bob_amount = 0.5
 camera_idle_bob_amount = 0.05
 camera_idle_bob_speed = 2.8
 landing_shake_strength = 1.0
@@ -243,18 +247,6 @@ offset_right = 49.0
 grow_vertical = 0
 theme_override_font_sizes/font_size = 18
 text = "30/90"
-
-[node name="ShootableBox" parent="." instance=ExtResource("7_2ix1y")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 4.30436, 1, 1.52844)
-
-[node name="ShootableBox2" parent="." instance=ExtResource("7_2ix1y")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.80762, 1, 1.50181)
-
-[node name="ShootableBox3" parent="." instance=ExtResource("7_2ix1y")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -3.86942, 1, 25.87)
-
-[node name="ShootableBox4" parent="." instance=ExtResource("7_2ix1y")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.116131, 1, -6.96203)
 
 [node name="NavigationRegion3D" type="NavigationRegion3D" parent="."]
 navigation_mesh = SubResource("NavigationMesh_w7bqs")
@@ -409,7 +401,23 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -12.4484, 1, -10.6733)
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.838245, 0)
 
 [node name="Enemy2" parent="Ai" instance=ExtResource("13_yspxn")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 4.51284, 0.81317, 14.3378)
+transform = Transform3D(-4.37114e-08, 0, -1, 0, 1, 0, 1, 0, -4.37114e-08, 23.7564, 0.81317, 14.3316)
 
 [node name="Enemy3" parent="Ai" instance=ExtResource("13_yspxn")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 18.9093, 3.33208, -7.05089)
+
+[node name="Boxes" type="Node3D" parent="."]
+
+[node name="ShootableBox" parent="Boxes" instance=ExtResource("7_2ix1y")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 4.30436, 1, 1.52844)
+
+[node name="ShootableBox2" parent="Boxes" instance=ExtResource("7_2ix1y")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.80762, 1, 1.50181)
+
+[node name="ShootableBox3" parent="Boxes" instance=ExtResource("7_2ix1y")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -3.86942, 1, 25.87)
+
+[node name="ShootableBox4" parent="Boxes" instance=ExtResource("7_2ix1y")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.116131, 1, -6.96203)
+
+[node name="Stairs" type="Node3D" parent="."]
