@@ -13,14 +13,17 @@ extends CharacterBody3D
 # WEAPON
 # ============================================================
 
+@onready var weapon_motion: Node3D = (
+	$WeaponMotion
+)
+
 @onready var weapon_ads: Node3D = (
-	$CameraPivot/Camera3D/WeaponHolder/WeaponADS
+	$WeaponMotion/WeaponHolder/WeaponADS
 )
 
 @onready var weapon: Node3D = (
-	$CameraPivot/Camera3D/WeaponHolder/WeaponADS/Weapon
+	$WeaponMotion/WeaponHolder/WeaponADS/Weapon
 )
-
 @onready var weapon_animation: AnimationPlayer = (
 	weapon.find_child("AnimationPlayer", true, false)
 )
@@ -142,17 +145,32 @@ var current_weapon_lean := 0.0
 
 @export_category("Bodycam Movement")
 
-@export var walk_bob_amount := 0.060
-@export var walk_sway_amount := 0.045
-@export var walk_bob_frequency := 9.0
-@export var sprint_bob_frequency := 13.0
-@export var camera_motion_smoothness := 12.0
-@export var camera_walk_tilt := 0.035
-@export var camera_run_tilt := 0.065
-@export var camera_tilt_smoothness := 10.0
-@export var camera_forward_amount := 0.030
-@export var sprint_bob_amount := 0.035
-@export var sprint_sway_amount := 0.025
+@export var walk_bob_amount := 0.085
+@export var walk_sway_amount := 0.065
+@export var walk_bob_frequency := 8.5
+
+@export var sprint_bob_amount := 0.125
+@export var sprint_sway_amount := 0.090
+@export var sprint_bob_frequency := 12.0
+
+@export var camera_motion_smoothness := 8.0
+
+@export var camera_walk_tilt := 0.045
+@export var camera_run_tilt := 0.085
+@export var camera_tilt_smoothness := 8.0
+
+@export var camera_forward_amount := 0.045
+
+
+@export_category("Bodycam Turning Inertia")
+
+@export var turn_inertia_strength := 0.035
+@export var turn_inertia_smoothness := 8.0
+@export var turn_inertia_max := 0.12
+
+var turn_inertia := 0.0
+var previous_yaw := 0.0
+
 
 #LEAN MOVEMENT
 @export_category("Lean Movement")
@@ -188,22 +206,29 @@ var camera_yaw_offset := 0.0
 
 @export_category("Bodycam Camera Inertia")
 
-@export var bodycam_position_lag := 8.0
+@export var bodycam_position_lag := 6.0
 @export var bodycam_rotation_lag := 10.0
 
-@export var bodycam_forward_inertia := 0.025
-@export var bodycam_side_inertia := 0.018
-@export var bodycam_vertical_inertia := 0.012
+@export var bodycam_forward_inertia := 0.045
+@export var bodycam_side_inertia := 0.035
+@export var bodycam_vertical_inertia := 0.020
 
 var bodycam_velocity_offset := Vector3.ZERO
 var bodycam_target_offset := Vector3.ZERO
 
 @export_category("Bodycam Secondary Motion")
 
-@export var bodycam_secondary_amount := 0.012
-@export var bodycam_secondary_speed := 2.2
+@export var bodycam_secondary_amount := 0.020
+@export var bodycam_secondary_speed := 2.8
 
 var bodycam_secondary_time := 0.0
+
+@export_category("Head Turning")
+
+@export var body_turn_speed := 4.0
+@export var body_turn_deadzone := 0.15
+
+var body_target_yaw := 0.0
 
 # ============================================================
 # CAMERA SHAKE
@@ -357,7 +382,7 @@ var weapon_ads_base_transform := Transform3D.IDENTITY
 var ads_point_local_transform := Transform3D.IDENTITY
 
 @onready var ads_point: Marker3D = (
-	$CameraPivot/Camera3D/WeaponHolder/WeaponADS/Weapon/ADSPoint
+	$WeaponMotion/WeaponHolder/WeaponADS/Weapon/ADSPoint
 )
 
 # ============================================================
@@ -394,8 +419,11 @@ var footstep_timer := 0.0
 # NODES
 # ============================================================
 
-@onready var camera_pivot: Node3D = $CameraPivot
-@onready var camera: Camera3D = $CameraPivot/Camera3D
+@onready var camera_rig: Node3D = $CameraRig
+@onready var camera_yaw: Node3D = $CameraRig/CameraYaw
+@onready var camera_pitch: Node3D = $CameraRig/CameraYaw/CameraPitch
+@onready var camera_motion: Node3D = $CameraRig/CameraYaw/CameraPitch/CameraMotion
+@onready var camera: Camera3D = $CameraRig/CameraYaw/CameraPitch/CameraMotion/Camera3D
 
 
 # ============================================================
@@ -434,8 +462,11 @@ func _ready() -> void:
 		weapon.transform *
 		ads_point.transform
 	)
+	
+	previous_yaw = rotation.y
+
 	# Remember original camera position.
-	camera_base_position = camera_pivot.position
+	camera_base_position = camera_motion.position
 
 	# Remember original weapon position and rotation.
 	weapon_base_position = weapon.position
@@ -524,7 +555,7 @@ func _unhandled_input(event: InputEvent) -> void:
 		# Player turns immediately
 		# ----------------------------------------------------
 
-		rotation.y = look_y
+		camera_yaw.rotation.y = look_y
 
 
 		# ----------------------------------------------------
@@ -571,22 +602,25 @@ func _physics_process(delta: float) -> void:
 
 	move_and_slide()
 
-
-	# Weapon bob is the master movement cycle.
+	handle_body_follow_head(delta)
 	handle_weapon_sway(delta)
 
-
-	# Camera reads the weapon bob.
 	handle_bodycam_motion(delta)
-
-
-	# Footsteps read the same weapon bob.
-	handle_footsteps()
-
-
 	handle_bodycam_inertia(delta)
+	handle_bodycam_turn_inertia(delta)
+
 	handle_camera_inertia(delta)
 	handle_camera_shake(delta)
+
+	# Camera systems
+	handle_camera_inertia(delta)
+	handle_camera_shake(delta)
+
+	handle_footsteps()
+
+	handle_weapon_fire(delta)
+	handle_muzzle_flash(delta)
+	handle_weapon_ads(delta)
 
 	handle_weapon_fire(delta)
 
@@ -968,8 +1002,8 @@ func handle_bodycam_motion(delta: float) -> void:
 	)
 
 
-	camera_pivot.position = (
-		camera_pivot.position.lerp(
+	camera_motion.position = (
+		camera_motion.position.lerp(
 			target_position,
 			position_smoothing
 		)
@@ -1025,11 +1059,13 @@ func handle_bodycam_motion(delta: float) -> void:
 	)
 
 
-	camera_pivot.rotation.z = lerp(
-		camera_pivot.rotation.z,
-		final_roll,
+	camera_yaw.rotation.z = lerp(
+		camera_yaw.rotation.z,
+		final_roll + turn_inertia,
 		tilt_smoothing
-	)# ============================================================
+	)
+
+# ============================================================
 # CAMERA INERTIA
 # ============================================================
 
@@ -1040,8 +1076,8 @@ func handle_camera_inertia(delta: float) -> void:
 	# ========================================================
 
 	var recoil_recovery: float = (
-		1.0
-		- exp(
+		1.0 -
+		exp(
 			-camera_recoil_recovery *
 			delta
 		)
@@ -1053,37 +1089,38 @@ func handle_camera_inertia(delta: float) -> void:
 	)
 
 	camera_recoil_position = camera_recoil_position.lerp(
-	Vector3.ZERO,
-	recoil_recovery
+		Vector3.ZERO,
+		recoil_recovery
 	)
 
 	camera_recoil_rotation = camera_recoil_rotation.lerp(
 		Vector3.ZERO,
 		recoil_recovery
 	)
-	# --------------------------------------------------------
-	# Smooth vertical look
-	# --------------------------------------------------------
+
+	# ========================================================
+	# CAMERA PITCH
+	# ========================================================
 
 	var pitch_smoothing: float = (
-		1.0
-		- exp(
+		1.0 -
+		exp(
 			-look_smoothness *
 			delta
 		)
 	)
 
-
-	camera_pivot.rotation.x = lerp(
-	camera_pivot.rotation.x,
-	look_x - camera_recoil.x + camera_recoil_rotation.x,
-	pitch_smoothing
+	camera_pitch.rotation.x = lerp(
+		camera_pitch.rotation.x,
+		look_x
+		- camera_recoil.x
+		+ camera_recoil_rotation.x,
+		pitch_smoothing
 	)
 
-
-	# --------------------------------------------------------
-	# Smooth horizontal camera lag
-	# --------------------------------------------------------
+	# ========================================================
+	# CAMERA YAW INERTIA
+	# ========================================================
 
 	camera_yaw_offset = move_toward(
 		camera_yaw_offset,
@@ -1091,14 +1128,20 @@ func handle_camera_inertia(delta: float) -> void:
 		yaw_return_speed * delta
 	)
 
+	# ========================================================
+	# BODYCAM TURNING + SIDEWAYS INERTIA
+	# ========================================================
 
-	camera_pivot.rotation.y = lerp(
-	camera_pivot.rotation.y,
-	camera_yaw_offset + camera_recoil.y + camera_recoil_rotation.y,
-	pitch_smoothing
+	var target_yaw_roll := (
+		turn_inertia
+		+ camera_yaw_offset
 	)
 
-
+	camera_yaw.rotation.z = lerp(
+		camera_yaw.rotation.z,
+		target_yaw_roll,
+		pitch_smoothing
+	)
 # ============================================================
 # CAMERA SHAKE
 # ============================================================
@@ -2569,4 +2612,57 @@ func handle_bodycam_inertia(delta: float) -> void:
 	bodycam_velocity_offset = bodycam_velocity_offset.lerp(
 		bodycam_target_offset,
 		smoothing
+	)
+
+func handle_bodycam_turn_inertia(delta: float) -> void:
+	var current_yaw: float = rotation.y
+
+	var yaw_delta: float = wrapf(
+		current_yaw - previous_yaw,
+		-PI,
+		PI
+	)
+
+	previous_yaw = current_yaw
+
+	var target_inertia: float = clampf(
+		-yaw_delta * turn_inertia_strength * 60.0,
+		-turn_inertia_max,
+		turn_inertia_max
+	)
+
+	var smoothing: float = (
+		1.0 -
+		exp(
+			-turn_inertia_smoothness * delta
+		)
+	)
+
+	turn_inertia = lerp(
+		turn_inertia,
+		target_inertia,
+		smoothing
+	)
+
+func handle_body_follow_head(delta: float) -> void:
+
+	# The head/camera direction.
+	var head_yaw := camera_yaw.rotation.y
+
+	# Difference between body and head.
+	var yaw_difference := wrapf(
+		head_yaw - rotation.y,
+		-PI,
+		PI
+	)
+
+	# Don't rotate the body for tiny head movements.
+	if abs(yaw_difference) < body_turn_deadzone:
+		return
+
+	# Smoothly rotate body toward head.
+	rotation.y = lerp_angle(
+		rotation.y,
+		head_yaw,
+		1.0 - exp(-body_turn_speed * delta)
 	)

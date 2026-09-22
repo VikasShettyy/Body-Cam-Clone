@@ -35,22 +35,6 @@ shape = SubResource("CapsuleShape3D_tugb3")
 
 [node name="MeshInstance3D" type="MeshInstance3D" parent="Body"]
 
-[node name="CameraPivot" type="Node3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.9, 0)
-
-[node name="Camera3D" type="Camera3D" parent="CameraPivot"]
-near = 0.03
-
-[node name="WeaponHolder" type="Node3D" parent="CameraPivot/Camera3D"]
-
-[node name="WeaponADS" type="Node3D" parent="CameraPivot/Camera3D/WeaponHolder"]
-
-[node name="Weapon" parent="CameraPivot/Camera3D/WeaponHolder/WeaponADS" instance=ExtResource("2_a3d8c")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.055, -0.205, -0.15)
-
-[node name="ADSPoint" type="Marker3D" parent="CameraPivot/Camera3D/WeaponHolder/WeaponADS/Weapon"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.0678961, 0.0967284, -0.159611)
-
 [node name="FootstepSound" type="AudioStreamPlayer3D" parent="."]
 stream = ExtResource("5_dd0ac")
 volume_db = -32.0
@@ -60,3 +44,28 @@ max_distance = 15.0
 [node name="Damageable" type="Node" parent="."]
 script = ExtResource("6_dd0ac")
 metadata/_custom_type_script = "uid://0fswi71mer7s"
+
+[node name="CameraRig" type="Node3D" parent="."]
+
+[node name="CameraYaw" type="Node3D" parent="CameraRig"]
+
+[node name="CameraPitch" type="Node3D" parent="CameraRig/CameraYaw"]
+
+[node name="CameraMotion" type="Node3D" parent="CameraRig/CameraYaw/CameraPitch"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.9, 0)
+
+[node name="Camera3D" type="Camera3D" parent="CameraRig/CameraYaw/CameraPitch/CameraMotion"]
+near = 0.03
+
+[node name="WeaponMotion" type="Node3D" parent="."]
+
+[node name="WeaponHolder" type="Node3D" parent="WeaponMotion"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.9, 0)
+
+[node name="WeaponADS" type="Node3D" parent="WeaponMotion/WeaponHolder"]
+
+[node name="Weapon" parent="WeaponMotion/WeaponHolder/WeaponADS" instance=ExtResource("2_a3d8c")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.055, -0.205, -0.15)
+
+[node name="ADSPoint" type="Marker3D" parent="WeaponMotion/WeaponHolder/WeaponADS/Weapon"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.0678961, 0.0967284, -0.159611)
