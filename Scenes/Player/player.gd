@@ -197,13 +197,14 @@ var camera_idle_time := 0.0
 @export_category("Camera Inertia")
 
 @export var look_smoothness := 14.0
-@export var max_camera_yaw_offset := 0.085
-@export var camera_yaw_inertia := 0.004
-@export var yaw_return_speed := 7.0
+@export var max_camera_yaw_offset := 0.06
+@export var camera_yaw_inertia := 0.003
+@export var yaw_return_speed := 10.0
 
 var camera_yaw_offset := 0.0
 
 
+<<<<<<< HEAD
 @export_category("Bodycam Camera Inertia")
 
 @export var bodycam_position_lag := 6.0
@@ -230,6 +231,8 @@ var bodycam_secondary_time := 0.0
 
 var body_target_yaw := 0.0
 
+=======
+>>>>>>> parent of f7f84c3 (Added Secondary Motion)
 # ============================================================
 # CAMERA SHAKE
 # ============================================================
@@ -606,10 +609,19 @@ func _physics_process(delta: float) -> void:
 	handle_weapon_sway(delta)
 
 	handle_bodycam_motion(delta)
+<<<<<<< HEAD
 	handle_bodycam_inertia(delta)
 	handle_bodycam_turn_inertia(delta)
+=======
+
+
+	# Footsteps read the same weapon bob.
+	handle_footsteps()
+
+>>>>>>> parent of f7f84c3 (Added Secondary Motion)
 
 	handle_camera_inertia(delta)
+
 	handle_camera_shake(delta)
 
 	# Camera systems
@@ -747,27 +759,7 @@ func handle_bodycam_motion(delta: float) -> void:
 	)
 
 	var movement_speed: float = horizontal_velocity.length()
-	
-	# ========================================================
-	# BODYCAM SECONDARY MOTION
-	# ========================================================
 
-	bodycam_secondary_time += (
-		delta *
-		bodycam_secondary_speed
-	)
-
-	var secondary_motion := Vector3(
-		sin(bodycam_secondary_time * 0.8)
-		* bodycam_secondary_amount,
-
-		cos(bodycam_secondary_time)
-		* bodycam_secondary_amount,
-
-		sin(bodycam_secondary_time * 0.5)
-		* bodycam_secondary_amount
-	)
-	
 	var is_moving: bool = (
 		movement_speed > 0.15
 	)
@@ -984,8 +976,6 @@ func handle_bodycam_motion(delta: float) -> void:
 			bob_z
 		)
 		+ idle_bob
-		+ bodycam_velocity_offset
-		+secondary_motion
 	)
 
 
@@ -2561,6 +2551,7 @@ func get_bone_damage(bone_name: String) -> float:
 		return 10.0
 
 	return 25.0
+<<<<<<< HEAD
 
 func handle_bodycam_inertia(delta: float) -> void:
 
@@ -2666,3 +2657,5 @@ func handle_body_follow_head(delta: float) -> void:
 		head_yaw,
 		1.0 - exp(-body_turn_speed * delta)
 	)
+=======
+>>>>>>> parent of f7f84c3 (Added Secondary Motion)

@@ -198,7 +198,10 @@ camera_run_tilt = 0.085
 tactical_lean_amount = 0.3
 camera_idle_bob_amount = 0.05
 camera_idle_bob_speed = 2.8
+<<<<<<< HEAD
 bodycam_secondary_amount = 0.1
+=======
+>>>>>>> parent of f7f84c3 (Added Secondary Motion)
 landing_shake_strength = 1.0
 landing_shake_rotation = 0.03
 jump_landing_multiplier = 0.25

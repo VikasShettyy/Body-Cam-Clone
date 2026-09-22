@@ -18,6 +18,7 @@ weapon_idle_amount = 0.001
 weapon_tactical_lean_amount = 0.2
 walk_bob_amount = 0.05
 camera_run_tilt = 0.08
+camera_yaw_inertia = 0.004
 camera_recoil_amount = 0.09
 camera_recoil_side_amount = 0.05
 shell_scene = ExtResource("2_xpcdj")
