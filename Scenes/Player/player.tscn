@@ -50,14 +50,13 @@ near = 0.03
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.055, -0.205, -0.15)
 
 [node name="ADSPoint" type="Marker3D" parent="CameraPivot/Camera3D/WeaponHolder/WeaponADS/Weapon"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.0678961, 0.0853377, -0.161533)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.0678961, 0.0967284, -0.159611)
 
 [node name="FootstepSound" type="AudioStreamPlayer3D" parent="."]
 stream = ExtResource("5_dd0ac")
 volume_db = -32.0
 pitch_scale = 1.76
 max_distance = 15.0
-bus = &"Footsteps"
 
 [node name="Damageable" type="Node" parent="."]
 script = ExtResource("6_dd0ac")

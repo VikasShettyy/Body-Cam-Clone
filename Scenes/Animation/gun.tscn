@@ -17,7 +17,6 @@
 resource_name = "Ch08_body"
 cull_mode = 2
 albedo_texture = ExtResource("1_3sf6r")
-metallic_texture = ExtResource("2_0gmhw")
 metallic_texture_channel = 2
 roughness_texture = ExtResource("2_0gmhw")
 roughness_texture_channel = 1
@@ -202,7 +201,7 @@ bind/49/pose = Transform3D(-1, 2.83085e-07, -3.83714e-07, -3.01063e-14, -0.80470
 resource_name = "Ch08_body1"
 cull_mode = 2
 albedo_texture = ExtResource("4_m30d5")
-metallic_texture = ExtResource("5_0k6i5")
+metallic_specular = 0.0
 metallic_texture_channel = 2
 roughness_texture = ExtResource("5_0k6i5")
 roughness_texture_channel = 1
@@ -234,7 +233,7 @@ resource_name = "Krinkov"
 cull_mode = 2
 albedo_texture = ExtResource("7_k70tv")
 metallic = 1.0
-metallic_texture = ExtResource("8_7rh18")
+metallic_specular = 0.0
 metallic_texture_channel = 2
 roughness_texture = ExtResource("8_7rh18")
 roughness_texture_channel = 1
@@ -3380,6 +3379,7 @@ mesh = SubResource("ArrayMesh_3mkmj")
 skin = SubResource("Skin_2q4d0")
 
 [node name="Object_61" type="MeshInstance3D" parent="Sketchfab_model/35eda6e09c774d1d92649dd4ab639ad2_fbx/Object_2/RootNode/Armature/Object_5/Skeleton3D"]
+gi_mode = 0
 mesh = SubResource("ArrayMesh_f0ost")
 skin = SubResource("Skin_2q4d0")
 

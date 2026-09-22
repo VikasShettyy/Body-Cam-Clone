@@ -223,11 +223,29 @@ var was_on_floor := false
 
 @export_category("Camera Recoil")
 
-@export var camera_recoil_amount := 0.018
-@export var camera_recoil_side_amount := 0.006
-@export var camera_recoil_recovery := 14.0
+# Main upward kick
+@export var camera_recoil_amount := 0.032
+
+# Horizontal randomness
+@export var camera_recoil_side_amount := 0.012
+
+# Rotational bodycam shake
+@export var camera_recoil_roll_amount := 0.018
+
+# Small physical camera movement
+@export var camera_recoil_position_amount := 0.018
+
+# How quickly the camera settles
+@export var camera_recoil_recovery := 18.0
+
+# How violently the recoil is applied
+@export var camera_recoil_kick_speed := 35.0
 
 var camera_recoil := Vector2.ZERO
+
+var camera_recoil_position := Vector3.ZERO
+var camera_recoil_rotation := Vector3.ZERO
+
 
 
 # ============================================================
@@ -993,7 +1011,15 @@ func handle_camera_inertia(delta: float) -> void:
 		recoil_recovery
 	)
 
+	camera_recoil_position = camera_recoil_position.lerp(
+	Vector3.ZERO,
+	recoil_recovery
+	)
 
+	camera_recoil_rotation = camera_recoil_rotation.lerp(
+		Vector3.ZERO,
+		recoil_recovery
+	)
 	# --------------------------------------------------------
 	# Smooth vertical look
 	# --------------------------------------------------------
@@ -1008,9 +1034,9 @@ func handle_camera_inertia(delta: float) -> void:
 
 
 	camera_pivot.rotation.x = lerp(
-		camera_pivot.rotation.x,
-		look_x - camera_recoil.x,
-		pitch_smoothing
+	camera_pivot.rotation.x,
+	look_x - camera_recoil.x + camera_recoil_rotation.x,
+	pitch_smoothing
 	)
 
 
@@ -1026,9 +1052,9 @@ func handle_camera_inertia(delta: float) -> void:
 
 
 	camera_pivot.rotation.y = lerp(
-		camera_pivot.rotation.y,
-		camera_yaw_offset + camera_recoil.y,
-		pitch_smoothing
+	camera_pivot.rotation.y,
+	camera_yaw_offset + camera_recoil.y + camera_recoil_rotation.y,
+	pitch_smoothing
 	)
 
 
@@ -1177,7 +1203,10 @@ func handle_camera_shake(delta: float) -> void:
 	# APPLY POSITION SHAKE
 	# ========================================================
 
-	camera.position = shake_position
+	camera.position = (
+	shake_position +
+	camera_recoil_position
+)
 
 
 	# ========================================================
@@ -1592,11 +1621,44 @@ func shoot() -> void:
 	# Camera recoil
 	# --------------------------------------------------------
 
+# ========================================================
+# AGGRESSIVE BODYCAM RECOIL
+# ========================================================
+
 	camera_recoil.x += camera_recoil_amount
 
 	camera_recoil.y += randf_range(
 		-camera_recoil_side_amount,
 		camera_recoil_side_amount
+	)
+
+	# Violent rotational jolt
+	camera_recoil_rotation.x += randf_range(
+		0.015,
+		0.035
+	)
+
+	camera_recoil_rotation.y += randf_range(
+		-camera_recoil_side_amount,
+		camera_recoil_side_amount
+	)
+
+	camera_recoil_rotation.z += randf_range(
+		-camera_recoil_roll_amount,
+		camera_recoil_roll_amount
+	)
+
+	# Physical camera kick
+	camera_recoil_position += Vector3(
+		randf_range(
+			-camera_recoil_position_amount,
+			camera_recoil_position_amount
+		),
+		randf_range(
+			-camera_recoil_position_amount * 0.5,
+			camera_recoil_position_amount * 0.5
+		),
+		camera_recoil_position_amount
 	)
 
 
